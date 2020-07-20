@@ -4,7 +4,7 @@
 
 
 
-[i春秋](https://www.ichunqiu.com/battalion/）
+[i春秋](https://www.ichunqiu.com/battalion/)
 
 
 [攻防世界](https://adworld.xctf.org.cn/)
