@@ -72,6 +72,10 @@ b的话传1235a，这样is_numberic会判断不是数字，但是比较的时候
 ![](web_new_010_1.png)
 
 #### 011 webshell
+用php的system函数来执行命令，先查看目录
+![](web_new_011_1.png)
+然后查看flag
+![](web_new_011_2.png)
 
 ### 高手进阶区
 
