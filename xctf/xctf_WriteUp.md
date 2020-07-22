@@ -38,6 +38,7 @@ php的备份有两种：*.php~和*.php.bak
 ![](web_new_005_1.png)
 
 用Burp截包查看响应报文
+
 ![](web_new_005_2.png)
 
 ### 高手进阶区
