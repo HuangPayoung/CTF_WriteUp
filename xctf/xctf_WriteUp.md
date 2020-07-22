@@ -30,6 +30,15 @@ url处传get参数
 ![](web_new_003_1.png)
 ![](web_new_003_2.png)
 
+#### 004 backup
+php的备份有两种：*.php~和*.php.bak
+
+#### 005 cookie
+在控制台查看cookie
+![](web_new_005_1.png)
+用Burp截包查看响应报文
+![](web_new_005_2.png)
+
 ### 高手进阶区
 
 
