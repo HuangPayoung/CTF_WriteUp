@@ -49,7 +49,12 @@ php的备份有两种：*.php~和*.php.bak
 根据提示用户名root，弱密码（123456）可以去爆破
 
 #### 008 command_execution
-
+先尝试能否注入命令
+![](web_new_008_1.png)
+发现可以轻松注入后，查找flag文件
+![](web_new_008_2.png)
+查看flag
+![](web_new_008_3.png)
 
 ### 高手进阶区
 
