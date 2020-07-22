@@ -42,8 +42,14 @@ php的备份有两种：*.php~和*.php.bak
 ![](web_new_005_2.png)
 
 #### 006 disabled_button
-把disable属性删除，按钮就可以按下了
+把disabled属性删除，按钮就可以按下了
 ![](web_new_006_1.png)
+
+#### 007 weak_auth
+根据提示用户名root，弱密码（123456）可以去爆破
+
+#### 008 command_execution
+
 
 ### 高手进阶区
 
