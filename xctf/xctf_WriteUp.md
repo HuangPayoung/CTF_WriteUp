@@ -41,6 +41,10 @@ php的备份有两种：*.php~和*.php.bak
 
 ![](web_new_005_2.png)
 
+#### 006 disabled_button
+把disable属性删除，按钮就可以按下了
+![](web_new_006_1.png)
+
 ### 高手进阶区
 
 
