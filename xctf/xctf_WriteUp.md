@@ -102,11 +102,12 @@ b的话传1235a，这样is_numberic会判断不是数字，但是比较的时候
 
 #### 001 base64
 使用python中的base64模块来解码即可
+
 ![](crypto_new_001_1.png)
 
 #### 002 Caesar
 凯撒密码，偏移量为12
-推荐一个在线工具非常齐全![ctf在线工具](http://ctf.ssleye.com/)
+推荐一个在线工具非常齐全 [ctf在线工具](http://ctf.ssleye.com/)
 
 
 ### 高手进阶区
