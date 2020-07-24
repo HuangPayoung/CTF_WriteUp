@@ -119,6 +119,21 @@ b的话传1235a，这样is_numberic会判断不是数字，但是比较的时候
 ![](crypto_new_004_1.png)
 ![](crypto_new_004_2.png)
 
+#### 005 混合编码
+先看提供的字符串，以==结尾，判断应该是base64类型，先解码一次
+
+![](crypto_new_005_1.png)
+
+以&#格式开头查询是Unicode的编码格式，在网上找一个在线Unicode解码
+
+![](crypto_new_005_2.png)
+
+再用base64解码一次，得到的格式比较像acsii码，再用python解码
+
+![](crypto_new_005_3.png)
+
+![](crypto_new_005_4.png)
+
 ### 高手进阶区
 
 
