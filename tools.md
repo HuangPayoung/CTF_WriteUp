@@ -4,6 +4,10 @@
 
 Vmware虚拟机：ubuntu1804, kali, windows7, windowsxp
 
+IDE编辑器：vscode
+
+编程环境：python 3.8.4, nodejs 12.8.2
+
 ### web工具
 * 浏览器firefox
 * 发包工具Max HackBar（HackBar好像要收费了）
