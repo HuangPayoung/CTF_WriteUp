@@ -9,6 +9,11 @@
 
 ![](misc_new_001_1.png)
 
+#### 002 pdf
+将pdf格式的文件转成word就可以看到flag
+
+![](misc_new_002_1.png)
+
 
 ### 高手进阶区
 
