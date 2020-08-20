@@ -92,3 +92,18 @@
 
 ![](misc_new_011_4.png)
 
+### 012 功夫再高也怕菜刀
+
+[foremost下载安装](https://www.cnblogs.com/cnnnnnn/p/8994362.html)参考了这篇文章，安装了foremost软件，然后用foremost提取文件，发现有一个加密的压缩包里面有flag.txt，但是需要密码才能解压缩
+
+![](misc_new_012_1.png)
+
+然后对利用wireshark对报文进行分析，找和flag.txt的信息，在wireshark界面选分组字节流进行查询，然后在追踪TCP流，分别对不同报文分析，可以发现相比于其他数据包第7个数据流这里多了一张图片
+
+![](misc_new_012_2.png)
+
+![](misc_new_012_3.png)
+
+把数据流中的图片信息用winhex保存下来，以FFD8开头以FFD9结尾，然后保存成jpg的格式就可以了，打开图片就可以看到解压的密码
+
+![](misc_new_012_4.png)
