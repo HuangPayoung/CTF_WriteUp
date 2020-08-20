@@ -1,0 +1,23 @@
+Foremost version 1.5.7 by Jesse Kornblum, Kris Kendall, and Nick Mikus
+Audit File
+
+Foremost started at Thu Aug 20 13:21:56 2020
+Invocation: foremost -i C:\Users\Huang\Documents\GitHub\CTF_WriteUp\xctf\misc\新手区\misc_new_012_1.pcapng -o C:\Users\Huang\Documents\GitHub\CTF_WriteUp\xctf\misc\新手区\\outfile 
+Output directory: C:\Users\Huang\Documents\GitHub\CTF_WriteUp\xctf\misc\新手区\outfile
+Configuration file: C:\Users\Huang\Downloads\foremost-master\binary\foremost.conf
+------------------------------------------------------------------
+File: C:\Users\Huang\Documents\GitHub\CTF_WriteUp\xctf\misc\新手区\misc_new_012_1.pcapng
+Start: Thu Aug 20 13:21:56 2020
+Length: 2 MB (23644185808868804 bytes)
+ 
+Num	 Name (bs=512)	       Size	 File Offset	 Comment 
+
+0:	00002778.zip 	      29 KB 	    1422689 	 
+Finish: Thu Aug 20 13:21:56 2020
+
+1 FILES EXTRACTED
+	
+zip:= 1
+------------------------------------------------------------------
+
+Foremost finished at Thu Aug 20 13:21:56 2020
