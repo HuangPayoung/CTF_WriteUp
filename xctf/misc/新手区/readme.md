@@ -78,5 +78,17 @@
 
 在网上找了别人实现的一个py3脚本，运行完就可以得到结果了，flag{Base_sixty_four_point_five}
 
+### 011 ext3
 
+根据题目的提示，是一个Linux系统光盘光盘，所以查看相关的命令，把光盘文件放到Linux后，先挂在到/mnt/目录下面，然后查看一下光盘中的文件系统，查看是否有flag相关的内容
+
+![](misc_new_011_1.png)
+
+![](misc_new_011_2.png)
+
+转到/mnt/目录下，去查看flag文件的内容，发现=结尾，应该是base64编码，再用py解码
+
+![](misc_new_011_3.png)
+
+![](misc_new_011_4.png)
 
