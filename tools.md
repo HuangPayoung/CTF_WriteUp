@@ -16,3 +16,7 @@ IDE编辑器：vscode
 ### 逆向工具
 * IDA pro
 * ghidra
+
+### vscode插件
+* Hex Editor 以十六进制查看修改文件
+
