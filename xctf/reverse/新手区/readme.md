@@ -48,6 +48,7 @@
 
 ![](reverse_new_004_1.png)
 
+
 ### 005 simple-unpack
 
 首先用upx进行脱壳，[下载地址](https://github.com/upx/upx/releases)
@@ -57,6 +58,19 @@
 然后用IDA64进行反汇编，在main函数里面马上就能看到flag了
 
 ![](reverse_new_005_2.png)
+
+
+### 006 logmein
+
+首先放入IDA中，选中main函数，然后反编译看一下main的功能，要求输入一个特定的字符串和程序当中的那个一致的话则报成功
+
+![](reverse_new_006_1.png)
+
+仿照流程自己写一个cpp然后输出flag，直接提交即可不需要加{}
+
+![](reverse_new_006_2.png)
+
+
 
 
 
