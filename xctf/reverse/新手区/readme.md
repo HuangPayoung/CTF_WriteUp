@@ -39,3 +39,25 @@
 
 ![](reverse_new_003_3.png)
 
+
+### 004 open-source
+
+这个题目比较简单，直接提供C源码了，刚开始想用gcc编译然后输入参数去做但是报错了，后面就用py模仿着运行一下
+
+输入三个参数，第一个是十六位整型数，第二个整型数要满足特定条件，第三个是一个字符串，然后计算一下hash值，最后以十六进制输出，注意提交flag不用外壳
+
+![](reverse_new_004_1.png)
+
+### 005 simple-unpack
+
+首先用upx进行脱壳，[下载地址](https://github.com/upx/upx/releases)
+
+![](reverse_new_005_1.png)
+
+然后用IDA64进行反汇编，在main函数里面马上就能看到flag了
+
+![](reverse_new_005_2.png)
+
+
+
+
