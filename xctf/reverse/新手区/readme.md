@@ -94,7 +94,7 @@
 
 于是按照编码的思路反过来，对正确的字符串correct进行译码，得到的就是flag
 
-![](reverse_new_008_8.png)
+![](reverse_new_008_2.png)
 
 
 
