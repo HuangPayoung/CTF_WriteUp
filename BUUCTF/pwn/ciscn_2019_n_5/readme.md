@@ -1,0 +1,1 @@
+写shellcode到bss段上后跳转执行。
