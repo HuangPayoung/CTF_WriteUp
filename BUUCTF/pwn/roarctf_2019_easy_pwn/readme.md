@@ -19,7 +19,7 @@
 3、往__realloc_hook写one_gadget，往__malloc_hook写relloc函数的地址，参考下图.
 总共有6条push指令，另外rsp-0x38，将__realloc_hook取出并赋值给rax，还有一条call指令，全部执行的话栈会抬高0x70，为配合本题的one_gadget跳过了两条push。
 
-![realloc_1](https://github.com/HuangPayoung/CTF_WriteUp/edit/master/BUUCTF/pwn/roarctf_2019_easy_pwn/realloc_1.jpg)
+![realloc_1](https://github.com/HuangPayoung/CTF_WriteUp/blob/master/BUUCTF/pwn/roarctf_2019_easy_pwn/realloc_1.jpg)
 
 ![realloc_2](https://github.com/HuangPayoung/CTF_WriteUp/edit/master/BUUCTF/pwn/roarctf_2019_easy_pwn/realloc_2.jpg)
 
