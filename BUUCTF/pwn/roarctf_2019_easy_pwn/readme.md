@@ -21,7 +21,7 @@
 
 ![realloc_1](https://github.com/HuangPayoung/CTF_WriteUp/blob/master/BUUCTF/pwn/roarctf_2019_easy_pwn/realloc_1.jpg)
 
-![realloc_2](https://github.com/HuangPayoung/CTF_WriteUp/edit/master/BUUCTF/pwn/roarctf_2019_easy_pwn/realloc_2.jpg)
+![realloc_2](https://github.com/HuangPayoung/CTF_WriteUp/blob/master/BUUCTF/pwn/roarctf_2019_easy_pwn/realloc_2.jpg)
 
 做这题学到了新东西，之前只会在__malloc_hook中写one_gadget，做这题因为栈布局几个one_gadget都不能正常使用，最后一步当中使用realloc来调整栈布局，参考两位师傅的博客。
 [博客](https://blog.csdn.net/mcmuyanga/article/details/111307531?utm_medium=distribute.pc_relevant.none-task-blog-2%7Edefault%7EBlogCommendFromMachineLearnPai2%7Edefault-1.control&depth_1-utm_source=distribute.pc_relevant.none-task-blog-2%7Edefault%7EBlogCommendFromMachineLearnPai2%7Edefault-1.control)
