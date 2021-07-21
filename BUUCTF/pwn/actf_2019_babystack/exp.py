@@ -1,5 +1,4 @@
 from pwn import *
-from six import b
 
 context(os = 'linux', arch = 'amd64', log_level = 'debug')
 # io = process('ACTF_2019_babystack')
