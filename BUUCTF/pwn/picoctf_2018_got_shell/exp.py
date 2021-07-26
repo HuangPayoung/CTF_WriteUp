@@ -1,6 +1,6 @@
 from pwn import *
 
-context(os = 'linux', arch = 'amd64', log_level = 'debug')
+context(os = 'linux', arch = 'i386', log_level = 'debug')
 # io = process('PicoCTF_2018_got-shell')
 io = remote('node4.buuoj.cn', 26545)
 elf = ELF('PicoCTF_2018_got-shell')
