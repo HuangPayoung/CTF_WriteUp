@@ -1,0 +1,1 @@
+32位下elf文件，格式化字符串漏洞，先泄露libc基址，再把printf函数got表改成system函数。
