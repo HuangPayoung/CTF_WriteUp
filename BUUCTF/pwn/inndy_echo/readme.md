@@ -1,0 +1,1 @@
+32位下格式化字符串漏洞，把printf函数got表改成system函数plt表。
