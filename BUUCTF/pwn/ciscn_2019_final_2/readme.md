@@ -10,8 +10,12 @@
 6. 退出功能，从标准输入一个字符串，然后拼接一下打印出来。
 
 攻击流程：
-1. 构造堆布局，先申请0x30的堆，再申请3个0x20的堆，伪造成一个0x90大小的堆。然后申请一个0x20的堆，double free之后泄露堆地址的低2字节，修改这低2字节使得tcache（0x20）中包含指向chunk0头的伪造堆。
-2. 利用fake_chunk修改chunk0的size域
+1. 构造堆布局，先申请0x30的堆，再申请3个0x20的堆，伪造成一个0x90大小的堆。然后申请一个0x20的堆，double free之后泄露堆地址的低2字节，修改这低2字节使得tcache(0x20)包含指向chunk0头的伪造堆。
+2. 利用fake_chunk修改chunk0的size域为0x91，重复释放填满tcache，然后放入unsorted_bin中以泄露libc基址（低4字节）。
+3. 使用tcache dup攻击修改libc中```_IO_2_1_stdin_```结构偏移为0x70处的```fileno```变量为666，相比往常tcache dup这里因为不能控制6字节的完整地址，所以要在tcache链上构造两次。
+利用unsorted_bin中libc地址，修改低四字节为目标fake_chunk（fileno），这个堆块是从unsorted_bin中切出来的chunk0。
+再申请一个0x30的堆，double free后得到一个fd域指向堆块的堆，修改这个fd域指向chunk0，最终依次取出其他堆后就可以得到fake_chunk，并进行修改。
+4. 调用退出功能泄露flag。
  
 踩坑点：
 1. 一开始觉得重定向flag的文件描述符为666，应该是想要调用read函数从这个fd读到某个缓冲区上，然后在调用write函数或者puts函数把缓冲区上的flag打印出来。但是这样做肯定是要控制程序执行流，
