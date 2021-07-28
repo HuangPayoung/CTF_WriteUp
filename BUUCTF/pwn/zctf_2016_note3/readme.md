@@ -2,4 +2,4 @@
 
 攻击思路：没开PIE，用unlink攻击。
 
-[参考博客](https://www.wangan.com/docs/1956）
+[参考博客](https://www.wangan.com/docs/1956)
