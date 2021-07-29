@@ -1,6 +1,6 @@
 from pwn import *
 
-context(os = 'linux', arch = 'i386', log_level = 'debug')
+context(os = 'linux', arch = 'amd64', log_level = 'debug')
 # io = process('gyctf_2020_document')
 io = remote('node4.buuoj.cn', 28226)
 # libc = ELF('/lib/x86_64-linux-gnu/libc.so.6')
