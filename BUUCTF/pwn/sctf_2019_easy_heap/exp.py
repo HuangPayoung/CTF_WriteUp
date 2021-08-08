@@ -1,4 +1,3 @@
-from mmap import mmap
 from pwn import *
 
 context(os = 'linux', arch = 'amd64', log_level = 'debug')
