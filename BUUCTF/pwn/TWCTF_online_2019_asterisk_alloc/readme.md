@@ -1,0 +1,1 @@
+和roarctf_2019_realloc_magic几乎一样的题目，思路也一样。
