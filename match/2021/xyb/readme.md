@@ -4,7 +4,7 @@
 
 
 # 题目列表
-总共10题做了2道，网上看其他师傅的WP最多有做6道的，缺的四道先传文件，后面要是能看到其他师傅的做法或者官方WP再回来补充。
+总共10题做了2道，网上看其他师傅的WP最多有做6道的，缺的4道先传文件，后面要是能看到其他师傅的做法或者官方WP再回来补充。
 
 ## note
 * say功能有一个scanf函数的格式化字符串漏洞，可以实现任意地址写。
@@ -16,7 +16,11 @@
 * 添加的时候调用fgets函数多读取1个字节，导致off-by-null漏洞。
 * 利用off-by-null构造堆叠，从unsorted_bin中把重叠的堆切成两部分，以满足两个指针指向同一chunk，利用保存unsorted_bin的地址泄露libc，然后用tcache_dup攻击伪造__free_hook的堆。
 
-
+## PassWordBox_ProVersion
+* UAF漏洞，可任意使用，但是用户申请大小要求为[0x420, 0x888]。
+* [2.31版本的large_bin_attack](https://github.com/shellphish/how2heap/blob/master/glibc_2.31/large_bin_attack.c)，参考how_to_heap的攻击方法。
+* 利用large_bin_attack修改mp_结构体mp_.tcache_bins和mp_.tcache_max_bytes这两个成员，相当于之前攻击global_fast_max一样的思路，增大了tcache_chunk的使用范围。
+* 利用UAF进行tcache_dup攻击。
 
 # 参考链接
 [ChaMd5安全团队](https://mp.weixin.qq.com/s/EsLeJwmo0ylW_VDmHsW_gw)
