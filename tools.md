@@ -1,6 +1,6 @@
 # 记录使用到的工具
 
-电脑环境：windows10
+电脑环境：windows10（换mac了）
 
 Vmware虚拟机：ubuntu1804, kali, windows7, windowsxp
 
