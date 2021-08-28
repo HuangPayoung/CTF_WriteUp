@@ -1,7 +1,6 @@
-8.21-8.22的比赛，太菜了做了两道最简单的，以前总是打完比赛不总结不学习，感觉很不好。
+8.21-8.22的祥云杯，太菜了做了两道最简单的，以前总是打完比赛不总结不学习，感觉很不好。
 
 所以打算从这次比赛开始，每次比赛，要么不打，要么打完都要看WP补充学习。
-
 
 # 题目列表
 总共10题做了2道，网上看其他师傅的WP最多有做6道的，缺的4道先传文件，后面要是能看到其他师傅的做法或者官方WP再回来补充。
@@ -28,6 +27,15 @@
 * [2.31版本的large_bin_attack](https://github.com/shellphish/how2heap/blob/master/glibc_2.31/large_bin_attack.c)，参考how_to_heap的攻击方法。
 * 利用large_bin_attack修改mp_结构体mp_.tcache_bins和mp_.tcache_max_bytes这两个成员，相当于之前攻击global_fast_max一样的思路，增大了tcache_chunk的使用范围。
 * 利用UAF进行tcache_dup攻击。
+
+## JigSaw'sCage
+* 初始化输入chioce的时候，读入8字节（%ld），能把保存在站上的random_number给覆盖掉，导致堆段可执行。
+* 添加功能，申请固定大小0x10，然后填满（\xc3）ret指令；编辑功能，最多输入0x10大小内容，但是第0xf字节总会被覆盖成ret指令；执行功能，以保存在各个chunk的内容为指令，开始执行。
+* 由于每次15字节执行写的shellcode，太短没法一次性实现攻击，所以要布置多个chunk然后串起来执行（最多允许申请5个）。
+* 攻击流程：
+    1. 栈劫持：注意到堆地址通过rdx寄存器传参，可以用rdx给rsp赋值。
+    2. 串联多个shellcode：在执行每段shellcode末尾，加上`add rsp, 0x20; push rsp`，由于程序提供了ret指令，就能够成功跳转到下一段shellcode执行，同时控制了rip和rsp。
+    3. 在堆上写'/bin/sh'然后赋值给rdi，清空rsi和rdx，最后调用syscall。
 
 # 参考链接
 [ChaMd5安全团队](https://mp.weixin.qq.com/s/EsLeJwmo0ylW_VDmHsW_gw)
