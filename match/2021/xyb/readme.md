@@ -11,6 +11,13 @@
 * 没有free功能，先用格式化字符串漏洞改topchunk.size，然后用house_of_orange得到一个unsorted_chunk，就可以泄露libc。
 * 往__realloc_hook写one_gadget，往__malloc_hook写realloc函数加上一个偏移，调整栈布局保证满足one_gadget的约束。
 
+## lemon
+* game功能，输入111111可以通过。把flag存在栈上，利用输入name的时候提前在栈上伪造lemon结构体。
+* 修改功能，检测下标没有检查负数，指定下标为-260，就可以利用存放在数据段上的栈地址进行修改，导致栈溢出，把argv[0]程序名覆盖成flag地址，覆盖2字节，其中高4位需要爆破，有1/16的几率中。
+* 添加功能，用户指定size大于0x400就不会正常分配，但是没有清空指针导致UAF。
+* 利用UAF实现double_free，然后篡改tcache链表指向一个不合法地址（size域和用户申请size不相等）
+* 申请该fake_chunk，程序检查不通过，就会将其释放，size无法通过free函数的检查，报错打印argv[0]并退出。
+
 ## PassWordBox_FreeVersion
 * 第一次添加的时候可以泄露程序初始化中生成随机数。
 * 添加的时候调用fgets函数多读取1个字节，导致off-by-null漏洞。
