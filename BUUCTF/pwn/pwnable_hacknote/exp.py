@@ -1,4 +1,3 @@
-from os import system
 from pwn import *
 
 context(os = 'linux', arch = 'i386', log_level = 'debug')
