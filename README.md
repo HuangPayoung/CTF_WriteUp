@@ -20,7 +20,7 @@
 
 [glibc源码](https://elixir.bootlin.com/glibc/glibc-2.23/source)
 
-[IO_file](https://ray-cp.github.io/archivers/IO_FILE_arbitrary_read_write)
+[IO_FILE](https://ray-cp.github.io/archivers/IO_FILE_arbitrary_read_write)
 
 ### musl
 
