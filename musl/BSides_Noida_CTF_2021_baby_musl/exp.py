@@ -1,8 +1,8 @@
 from pwn import *
 
 context(os = 'linux', arch = 'amd64', log_level = 'debug')
-# io = process('baby_musl')
-io = remote('chall.pwnable.tw', 10202)
+io = process('baby_musl')
+# io = remote('chall.pwnable.tw', 10202)
 libc = ELF('/usr/lib/x86_64-linux-musl/libc.so')
 # libc = ELF('/mnt/hgfs/payoung/Documents/ctf/musl/musl-1.1.24/build/lib/libc.so')
 elf = ELF('baby_musl')
