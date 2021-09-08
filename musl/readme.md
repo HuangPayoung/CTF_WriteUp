@@ -64,9 +64,48 @@ lib目录下有libc.so，一个ld符号链接指向libc.so，bin路径下有一�
 ### 踩坑
 一开始我想着劫持一次rsp就行，直接把ROP链放在stdout结构体中，然后一直卡着过不去，puts有一个加锁函数然后在调用fputs函数，就这个加锁的过程一直过不去。后面调试的时候就把ROP链一点一点改短，发现就可以了，可能是加锁的时候会用到stdout结构体里面的变量，所以第一次劫持rsp到stdout结构体里面不能写太长，我就想了另外的方法把ROP链放堆上，再用一次long_jmp劫持过去。
 
+
+## BSides_Noida_CTF_2021_baby_musl
+
+学到新的劫持控制流的方法。
+
+```
+_Noreturn void exit(int code)
+{
+	__funcs_on_exit();
+	__libc_exit_fini();
+	__stdio_exit();
+	_Exit(code);
+}
+```
+
+之前FSOP是控制第三个函数里面的流程，这次是第一个函数里面的流程。
+
+```
+void __funcs_on_exit()
+{
+	void (*func)(void *), *arg;
+	LOCK(lock);
+	for (; head; head=head->next, slot=COUNT) while(slot-->0) {
+		func = head->f[slot];
+		arg = head->a[slot];
+		UNLOCK(lock);
+		func(arg);
+		LOCK(lock);
+	}
+}
+```
+
+head变量可读写，初始值为0，不能直接`libc.sym['head']`去找这个符号，会找成另外一个，要利用偏移`libc.sym['environ'] + 0x20`。
+
+payload构造：`payload = p64(fake_fl) + b'A' * 0xf8 + p64(system) + b'A' * 0xf8 + p64(bin_sh)`，fake_fl变量以及head变量写payload存放的地址。
+
+
 # 参考链接
 
 [musl 1.1.24 出题人角度解析](https://www.anquanke.com/post/id/202253#h2-9)
+
+[musl 1.1.24 exit劫持控制流](https://niebelungen-d.top/2021/08/22/Musl-libc-Pwn-Learning/)
 
 [musl 1.2.2 源码审计](https://www.anquanke.com/post/id/241101)
 
