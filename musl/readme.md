@@ -101,6 +101,34 @@ head变量可读写，初始值为0，不能直接`libc.sym['head']`去找这个
 payload构造：`payload = p64(fake_fl) + b'A' * 0xf8 + p64(system) + b'A' * 0xf8 + p64(bin_sh)`，fake_fl变量以及head变量写payload存放的地址。
 
 
+## DefCon_Quals_2021_mooosl
+
+第一次看1.2.2的题目，太太太太恐怖了，这题真的搞了我快一周了吧，反复看源码反复gdb调试，不过做完也有很大的收获。
+
+### 1.2.2新版特性
+
+1.2.2关于malloc管理方面发生翻天覆地的变化，和1.1.24版本几乎没有任何关联，因为内容太多了，我现在只整理和漏洞利用相关的内容，后续如果对源码有深入阅读和理解再做一个完整的整理。
+
+管理数据结构：
+```
+__malloc_context(位于libc中bss段上)
+->meta_area(新申请一页保证地址末12位对齐，一般就是0x56的heap段)
+->meta(一般都是从elf或者libc扣出一些内存片)
+->group(mmap申请，一般0x7f，和上述结构分离开，看情况有可能可以用这个地址来泄露libc，因为mmap申请的内容和libc似乎有固定偏移)
+```
+
+group对chunk的管理策略：
+1. chunk按照内存先后（也就是avail_mask），依次分配。
+2. free掉的chunk被记录在free_mask，不能马上分配。
+3. 需要等group内所有chunk都处于freed或者used状态时，此时avail_mask为0，下次申请会将freed状态的chunk转换成avaliable。
+
+### 攻击思路
+1. 利用UAF泄露地址信息和secret，注意要构造好堆风水，使得原先用来保存value的堆被写入指针。
+2. 伪造meta->next/prev指针，利用unlink时调用dequeue函数可以任意地址写，往__stdout_FILE写伪造的meta地址。
+3. 利用queue函数把伪造的mete放入__malloc_context的active数组当中，下次申请即可拿到。
+4. 进行FSOP攻击拿到shell。
+
+
 # 参考链接
 
 [musl 1.1.24 出题人角度解析](https://www.anquanke.com/post/id/202253#h2-9)
