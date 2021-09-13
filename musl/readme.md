@@ -129,6 +129,15 @@ group对chunk的管理策略：
 4. 进行FSOP攻击拿到shell。
 
 
+## RCTF_2021_musl
+
+最近一直在学musl，刚好这周末RCTF就碰上了一道1.2.2的题目，摸了一道。其他题目太难了，一道都做不出来，人麻了。
+
+### 攻击思路
+1. 申请size为0时有一个堆溢出，构造堆风水来泄露信息。
+2. 和DefCon那一道差不多也是伪造meta，但是开了沙箱没法拿shell，所以栈迁移至堆上的ROP链进行ORW。
+3. 比较坑的一点是这个题目用flag的目录来恶心你，告诉你在/home/ctf/flag/路径下，但是flag文件名称有问题，然后我就搞不动了。后面队友帮忙补上，先用open('/home/ctf/flag/', 0x1000, 0)打开这个路径，然后用getdents(3, buf, 0x40)把目录下的文件名读到buf上，最后write打印出来。接下来是常规的ORW了。
+
 # 参考链接
 
 [musl 1.1.24 出题人角度解析](https://www.anquanke.com/post/id/202253#h2-9)
