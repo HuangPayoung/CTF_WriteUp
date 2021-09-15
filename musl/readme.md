@@ -138,6 +138,18 @@ group对chunk的管理策略：
 2. 和DefCon那一道差不多也是伪造meta，但是开了沙箱没法拿shell，所以栈迁移至堆上的ROP链进行ORW。
 3. 比较坑的一点是这个题目用flag的目录来恶心你，告诉你在/home/ctf/flag/路径下，但是flag文件名称有问题，然后我就搞不动了。后面队友帮忙补上，先用open('/home/ctf/flag/', 0x1000, 0)打开这个路径，然后用getdents(3, buf, 0x40)把目录下的文件名读到buf上，最后write打印出来。接下来是常规的ORW了。
 
+
+## xyb_2021_babymull
+
+整理祥云杯的题目顺便有一题musl。
+
+### 攻击思路
+1. 没有清空释放chunk的内容，再次申请利用show功能泄露mmap和libc基址。
+2. 利用后门功能泄露secret，并利用一字节将mmap段上申请的大堆块里面的offset覆盖掉。
+3. 依次在mmap段上伪造group、meta、meta_area，然后释放被篡改的堆，利用nontrivial_free()里面的queue()将meta放入active数组。
+4. 利用堆叠，修改伪造的meta->mem指向stdout，在堆上布置ROP链，然后进行FSOP劫持控制流，利用栈劫持来控制流劫持到ROP链上拿到flag。
+
+
 # 参考链接
 
 [musl 1.1.24 出题人角度解析](https://www.anquanke.com/post/id/202253#h2-9)
