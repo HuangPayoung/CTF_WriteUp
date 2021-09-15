@@ -150,4 +150,6 @@ group对chunk的管理策略：
 
 [musl-1.2.x堆部分源码分析](https://www.anquanke.com/post/id/246929)
 
+[新版musl-libc malloc源码分析与调试](https://www.anquanke.com/post/id/252293#h2-0)
+
 [2021强网杯easyheap](https://www.anquanke.com/post/id/248411)
