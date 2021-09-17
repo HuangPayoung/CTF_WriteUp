@@ -139,6 +139,16 @@ group对chunk的管理策略：
 3. 比较坑的一点是这个题目用flag的目录来恶心你，告诉你在/home/ctf/flag/路径下，但是flag文件名称有问题，然后我就搞不动了。后面队友帮忙补上，先用open('/home/ctf/flag/', 0x1000, 0)打开这个路径，然后用getdents(3, buf, 0x40)把目录下的文件名读到buf上，最后write打印出来。接下来是常规的ORW了。
 
 
+## RCTF_2021_warmnote
+
+比赛的时候没注意原来还有一道musl，复现其他大佬的WP。
+
+### 攻击思路
+1. 构造堆风水，利用释放note时没有清空内容来泄露信息，再利用后门泄露secret。
+2. 利用edit的溢出覆盖掉offset字节，伪造group, meta, meta_area，利用dequeue函数实现任意地址写。
+3. 重新申请以拿到伪造的meta，然后利用堆叠控制meta，从而拿到stdout结构体进行FSOP。
+4. 通过FSOP控制程序流，由于开了沙箱，只能栈劫持至ROP链上进行ORW。
+
 ## xyb_2021_babymull
 
 整理祥云杯的题目顺便有一题musl。
@@ -149,6 +159,17 @@ group对chunk的管理策略：
 3. 依次在mmap段上伪造group、meta、meta_area，然后释放被篡改的堆，利用nontrivial_free()里面的queue()将meta放入active数组。
 4. 利用堆叠，修改伪造的meta->mem指向stdout，在堆上布置ROP链，然后进行FSOP劫持控制流，利用栈劫持来控制流劫持到ROP链上拿到flag。
 
+
+## 5space_2021_notegame
+
+日常自闭，复现队伍大佬的WP。
+
+### 攻击思路
+1. 利用realloc的特性，会把旧堆块的内容拷贝至新堆块，用来泄露mmap/libc基址，并利用后门泄露secret。
+2. 利用tempNote功能，在指定地址自己伪造meta_area, meta。
+3. 利用edit功能的溢出清空下一堆块的offset，然后伪造group使其指向伪造的meta。
+4. 利用dequeue函数的unlink功能任意写，将__stdout_used变量覆盖成tempNote申请的区域上，在该内存中伪造stdout。
+5. exit退出，通过FSOP获取shell。
 
 # 参考链接
 
