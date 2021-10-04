@@ -177,6 +177,8 @@ group对chunk的管理策略：
 
 [musl 1.1.24 exit劫持控制流](https://niebelungen-d.top/2021/08/22/Musl-libc-Pwn-Learning/)
 
+[从musl libc 1.1.24到1.2.2 学习pwn姿势](https://www.anquanke.com/post/id/253566)
+
 [musl 1.2.2 源码审计](https://www.anquanke.com/post/id/241101)
 
 [musl 1.2.2 漏洞利用](https://www.anquanke.com/post/id/241104)
