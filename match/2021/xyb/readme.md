@@ -44,6 +44,7 @@
     3. 在堆上写'/bin/sh'然后赋值给rdi，清空rsi和rdx，最后调用syscall。
 
 ## babymull
+
 1. 没有清空释放chunk的内容，再次申请利用show功能泄露mmap和libc基址。
 2. 利用后门功能泄露secret，并利用一字节将mmap段上申请的大堆块里面的offset覆盖掉。
 3. 依次在mmap段上伪造group、meta、meta_area，然后释放被篡改的堆，利用nontrivial_free()里面的queue()将meta放入active数组。
