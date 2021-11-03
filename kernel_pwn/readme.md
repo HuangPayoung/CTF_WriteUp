@@ -5,10 +5,14 @@
 
 ## ciscn2017_babydriver
 
+1. uaf修改creh结构体。
+2. rop关闭smep保护后ret2usr。
 
 
 ## qwb2018_core
 
+1. 使用rop在内核态实现提权。
+2. 使用rop进行ret2usr攻击。
 
 
 # 环境搭建
@@ -59,7 +63,22 @@ modprobe: 添加或删除模块，modprobe 在加载模块时会查找依赖关�
 
 `time ROPgadget --binary ./vmlinux > g2`
 
-建议用ropper，ROPgadget跑的我虚拟机直接卡死。
+网上有师傅建议用ropper，但是我自己用的时候ropper一直卡着过不去，就用ROPgadget了。
+
+## extract
+
+`./extract-vmlinux ./bzImage > vmlinux`
+
+## gdb
+
+```
+gdb ./vmlinux
+add-symbol-file ./babydriver.ko 0xffffffffc0000000
+b babyread
+b *(0xffffffffc0000000+0x130)
+target remote localhost:1234
+```
+
 
 # 参考链接
 
