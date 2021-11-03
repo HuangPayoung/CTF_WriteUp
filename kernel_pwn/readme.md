@@ -15,6 +15,16 @@
 2. 使用rop进行ret2usr攻击。
 
 
+## 0ctf2018finals_babykernel
+
+1. 
+2. 侧信道进行泄露，但是我本地调试次重启后没有记录下save.txt文件，好像行不通。
+
+[参考博客](http://p4nda.top/2018/07/20/0ctf-baby/)
+
+难道要我每次重启前看日志输入然后自己创建save.txt？这也太奇怪了吧，有时候重启刷新太快了，非常考验手速。
+
+
 # 环境搭建
 
 其实题目一般会提供内核和相应的文件系统，里面都齐全了，但是为了调试还是自己准备一份比较好。
@@ -55,7 +65,9 @@ modprobe: 添加或删除模块，modprobe 在加载模块时会查找依赖关�
 
 ## complie
 
-`gcc exploit.c -static -masm=intel -g -o exploit`
+内联汇编：`gcc exploit.c -static -masm=intel -g -o exploit`
+
+多线程：`gcc -static exp.c -lpthread -o exp`
 
 ## gadget
 
