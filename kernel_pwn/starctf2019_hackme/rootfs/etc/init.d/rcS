@@ -1,0 +1,29 @@
+#!/bin/sh
+
+echo "CiAgICAgICAgIyAgICMgICAgIyMjIyAgICAjIyMjIyAgIyMjIyMjCiAgICAgICAgICMgIyAgICAj
+ICAgICMgICAgICMgICAgIwogICAgICAgIyMjICMjIyAgIyAgICAgICAgICAjICAgICMjIyMjCiAg
+ICAgICAgICMgIyAgICAjICAgICAgICAgICMgICAgIwogICAgICAgICMgICAjICAgIyAgICAjICAg
+ICAjICAgICMKICAgICAgICAgICAgICAgICAjIyMjICAgICAgIyAgICAjCgo=" | base64 -d
+
+mount -t proc none /proc
+mount -t devtmpfs none /dev
+mkdir /dev/pts
+mount /dev/pts
+
+insmod /home/pwn/hackme.ko
+chmod 644 /dev/hackme
+
+echo 0 > /proc/sys/kernel/dmesg_restrict
+echo 0 > /proc/sys/kernel/kptr_restrict
+cat /proc/modules
+cat /proc/kallsyms | grep prepare_cred
+cd /home/pwn
+chown -R root /flag
+chmod 400 /flag
+
+#cat /proc/slabinfo | grep cred_jar
+chown -R 1000:1000 .
+setsid cttyhack setuidgid 1000 sh
+
+umount /proc
+poweroff -f
