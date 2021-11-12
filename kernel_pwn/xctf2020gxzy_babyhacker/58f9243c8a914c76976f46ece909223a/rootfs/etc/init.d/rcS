@@ -1,0 +1,22 @@
+#!/bin/sh
+
+mount -t proc none /proc
+mount -t devtmpfs none /dev
+mkdir /dev/pts
+mount /dev/pts
+
+insmod /home/pwn/babyhacker.ko
+chmod 644 /dev/babyhacker
+echo 0 > /proc/sys/kernel/dmesg_restrict
+echo 0 > /proc/sys/kernel/kptr_restrict
+
+cd /home/pwn
+chown -R root /flag
+chmod 400 /flag
+
+
+chown -R 1000:1000 .
+setsid cttyhack setuidgid 1000 sh
+
+umount /proc
+poweroff -f

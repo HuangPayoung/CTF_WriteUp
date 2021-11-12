@@ -1,0 +1,20 @@
+#!/bin/sh
+
+echo "Welcome :)"
+
+mount -t proc none /proc
+mount -t devtmpfs none /dev
+mkdir /dev/pts
+mount /dev/pts
+
+insmod /home/pwn/noob.ko
+chmod 666 /dev/noob
+
+echo 1 > /proc/sys/kernel/dmesg_restrict
+echo 1 > /proc/sys/kernel/kptr_restrict
+
+cd /home/pwn
+setsid /bin/cttyhack setuidgid 1000 sh
+
+umount /proc
+poweroff -f
