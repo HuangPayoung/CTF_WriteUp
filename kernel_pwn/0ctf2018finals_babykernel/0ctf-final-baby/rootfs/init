@@ -13,7 +13,7 @@ exec 2>/dev/console
 insmod baby.ko
 chmod 777 /dev/baby
 echo -e "\nBoot took $(cut -d' ' -f1 /proc/uptime) seconds\n"
-setsid cttyhack setuidgid 501 sh
+setsid cttyhack setuidgid 1000 sh
 
 umount /proc
 umount /sys

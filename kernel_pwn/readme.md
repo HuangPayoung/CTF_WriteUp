@@ -22,7 +22,9 @@
 
 [参考博客](http://p4nda.top/2018/07/20/0ctf-baby/)
 
-难道要我每次重启前看日志输出然后自己创建save.txt？这也太奇怪了吧，有时候重启刷新太快了，非常考验手速。
+~~难道要我每次重启前看日志输出然后自己创建save.txt？这也太奇怪了吧，有时候重启刷新太快了，非常考验手速。~~
+
+受另外一道题目`d^3ctf2019_knote`启发，其实可以用sleep来阻塞一下，然后就能看到每次爆破的最后结果。
 
 
 ## starctf2019_hackme
@@ -34,7 +36,7 @@
 
 ## xctf2020gxzy_babyhacker(2)
 
-1. 经典ROP。
+1. 经典ROP。
 2. 学到一个偷鸡方法（不是），rm /sbin/poweroff，然后exit退出会找不到命令，返回的就是root shell。
 
 
@@ -54,6 +56,22 @@ kernel当中关于堆分配器slub的两个保护措施，可以参考这篇博�
 2. UAF直接利用，依次泄露堆地址和canary，然后篡改fd指向pool数组从而任意写。这里有个很秀的操作：如果直接把fd改成指向pool中的变量，该地址要么为0要么是kernel中的堆，内容不可控会导致`CONFIG_SLAB_FREELIST_HARDENED`的`prefech`检查不通过，所以伪造的fake_chunk要偏4字节，先在`pool[0x19]`处写一个4字节的fake_ptr（这个通过伪造magic来实现），然后伪造的fake_chunk指向&pool`[0x19] - 4`，就能在pool数组里面任意写了。申请的时候注意检查chunk里面内容，验证是否就是我们伪造的fake_chunk，我在这踩坑看了好久，也照着其他师傅的wp动态调了一遍发现没申请到，在内核里面环境可能会受各种情况影响，所以干脆写个循环多申请几个直到能确保申请到了fake_chunk。
 
 参考链接：[bsauce](https://blog.csdn.net/panhewu9919/article/details/111839950) [kirin](https://kirin-say.top/2020/03/10/Kernoob-kmalloc-without-SMAP/)
+
+
+## d^3ctf2019_knote
+
+内核题调试起来好麻烦，学到一个条件竞争的新方法，利用`userfaultfd`这个方法来阻塞进程，从而保证条件竞争成功。原理可以看ha1vk师傅写的博客很详细，另外他还提供一个注册handler函数的模版。
+
+攻击思路：
+1. 写一个handler函数处理缺页错误，处理过程和原过程类似分配新的内存页给缺页，需要修改的地方是新内存页的内容以及加一个sleep函数阻塞该进程。
+2. 用mmap申请一页内存，然后对该页内存注册handler函数，虽然mmap申请了但是还没使用过，实际上并没有分配该页内存，传入内核使用的话就会报缺页错误。
+3. 父进程调用kshow传入mmap申请的那页内存，出现缺页错误进入handler函数处理。子进程sleep(1)保证父进程先执行，父进程处理缺页然后sleep(3)。执行回到子进程（还剩2s足够了），此时调用kdelete释放kshow的目标堆，再open("/dev/ptmx")使得刚刚释放的堆被tty_struct结构体拿到，从而造成UAF漏洞，然后子进程exit(0)退出。执行回到父进程，kshow的目标堆已被换成tty_struct结构体，此时kshow就能拿到里面的指针从而泄露内核基址。
+4. 后续攻击思路也类似，利用UAF修改释放堆的FD指针，从而实现任意内存分配，尝试分配到modprobe_path变量的地址，然后利用kedit改成我们自己编写的catFlag脚本。
+5. 执行错误文件然后就会调用`__request_module`函数去执行`ret = call_modprobe(module_name, wait ? UMH_WAIT_PROC : UMH_WAIT_EXEC);`，此时`module_name`就是我们修改的恶意脚本，然后就能`cat flag`。
+6. 踩坑点：一开始cat flag完成后直接退出了，然而我们分配的fake_chunk程序结束后会被释放，导致内核直接崩掉，~~虽然flag输出了但是手速不够快总是看不到flag~~，所以可以在退出前加个sleep阻塞进程保证能看到flag。
+
+参考链接：[ha1vk](https://blog.csdn.net/seaaseesa/article/details/104650794) [pkfxxx](https://pkfxxxx.github.io/2020/03/19/ji-lu-yi-dao-kernel-pwn/)
+
 
 
 # 环境搭建

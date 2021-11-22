@@ -3,7 +3,7 @@ from pwn import *
 context(os = 'linux', arch = 'amd64', log_level = 'debug')
 io = process('pwdPro')
 # io = remote('47.104.71.220', 38562)
-libc = ELF('/home/payoung/Downloads/glibc-all-in-one/libs/2.31-0ubuntu9.2_amd64/libc-2.31.so')
+libc = ELF('/mnt/hgfs/payoung/Documents/ctf/glibc-all-in-one/libs/2.31-0ubuntu9.2_amd64/libc-2.31.so')
 # libc = ELF('libc.so.6')
 elf = ELF('pwdPro')
 
