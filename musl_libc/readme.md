@@ -187,4 +187,6 @@ group对chunk的管理策略：
 
 [新版musl-libc malloc源码分析与调试](https://www.anquanke.com/post/id/252293#h2-0)
 
+[新版musl libc 浅析](http://pzhxbz.cn/?p=172)
+
 [2021强网杯easyheap](https://www.anquanke.com/post/id/248411)

