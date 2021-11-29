@@ -12,7 +12,7 @@
 
 这题有点恶心，限制太多了。
 
-`__malloc_hook`和`__free_hook`全ban，main函数不返回，也没`exit`只用`_exit`，后者用系统调用直接退出没法刷新IO，而且交互只用`read``write`没办法利用这个来劫持控制流，想着触发glibc的abort流程，后面发现2.27以后abort里面也不刷新IO了。
+`__malloc_hook`和`__free_hook`全ban，main函数不返回，也没`exit`只用`_exit`，后者用系统调用直接退出没法刷新IO，而且交互只用`read`和`write`没办法利用这个来劫持控制流，想着触发glibc的abort流程，后面发现2.27以后abort里面也不刷新IO了。
 
 感觉像`house_of_emma`那题，但是又把`stderr`放elf的bss段上不在libc里面了，最后实在想不出来。
 
