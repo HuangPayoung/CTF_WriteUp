@@ -482,6 +482,61 @@ static int alloc_fwd(struct chunk *c)
 
 和glibc下一样，通过控制__stdin_FILE结构体里面的指针，在调用exit函数退出的时候就能劫持控制流。
 
+__stdin_FILE结构体
+
+```
+pwndbg> p __stdin_FILE
+$5 = {
+  flags = 73,
+  rpos = 0x0,
+  rend = 0x0,
+  close = 0x7ffff7fa5c00 <__stdio_close>,
+  wend = 0x0,
+  wpos = 0x0,
+  mustbezero_1 = 0x0,
+  wbase = 0x0,
+  read = 0x7ffff7fa5cf0 <__stdio_read>,
+  write = 0x0,
+  seek = 0x7ffff7fa5de0 <__stdio_seek>,
+  buf = 0x7ffff7ffc4e8 <buf+8> "",
+  buf_size = 0,
+  prev = 0x0,
+  next = 0x0,
+  fd = 0,
+  pipe_pid = 0,
+  lockcount = 0,
+  mode = 0,
+  lock = -1,
+  lbf = -1,
+  cookie = 0x0,
+  off = 0,
+  getln_buf = 0x0,
+  mustbezero_2 = 0x0,
+  shend = 0x0,
+  shlim = 0,
+  shcnt = 0,
+  prev_locked = 0x0,
+  next_locked = 0x0,
+  locale = 0x0
+}
+pwndbg> x /40gx &__stdin_FILE
+0x7ffff7ffb180 <__stdin_FILE>:	0x0000000000000049	0x0000000000000000
+0x7ffff7ffb190 <__stdin_FILE+16>:	0x0000000000000000	0x00007ffff7fa5c00
+0x7ffff7ffb1a0 <__stdin_FILE+32>:	0x0000000000000000	0x0000000000000000
+0x7ffff7ffb1b0 <__stdin_FILE+48>:	0x0000000000000000	0x0000000000000000
+0x7ffff7ffb1c0 <__stdin_FILE+64>:	0x00007ffff7fa5cf0	0x0000000000000000
+0x7ffff7ffb1d0 <__stdin_FILE+80>:	0x00007ffff7fa5de0	0x00007ffff7ffc4e8
+0x7ffff7ffb1e0 <__stdin_FILE+96>:	0x0000000000000000	0x0000000000000000
+0x7ffff7ffb1f0 <__stdin_FILE+112>:	0x0000000000000000	0x0000000000000000
+0x7ffff7ffb200 <__stdin_FILE+128>:	0x0000000000000000	0xffffffff00000000
+0x7ffff7ffb210 <__stdin_FILE+144>:	0x00000000ffffffff	0x0000000000000000
+0x7ffff7ffb220 <__stdin_FILE+160>:	0x0000000000000000	0x0000000000000000
+0x7ffff7ffb230 <__stdin_FILE+176>:	0x0000000000000000	0x0000000000000000
+0x7ffff7ffb240 <__stdin_FILE+192>:	0x0000000000000000	0x0000000000000000
+0x7ffff7ffb250 <__stdin_FILE+208>:	0x0000000000000000	0x0000000000000000
+0x7ffff7ffb260 <__stdin_FILE+224>:	0x0000000000000000	0x0000000000000000
+```
+
 调用路径：`exit()->__stdio_exit()->close_file(__stdin_used)`。
 
 exit()函数源码
@@ -516,8 +571,8 @@ static void close_file(FILE *f)
 {
     if (!f) return;
     FFINALLOCK(f);
-    if (f->wpos != f->wbase) f->write(f, 0, 0); 		<------
-    if (f->rpos != f->rend) f->seek(f, f->rpos-f->rend, SEEK_CUR);
+    if (f->wpos != f->wbase) f->write(f, 0, 0); 						<------
+    if (f->rpos != f->rend) f->seek(f, f->rpos-f->rend, SEEK_CUR);		<------
 }
 ```
 
@@ -583,7 +638,11 @@ payload += p64(bin_sh)
 ```
 fake_fl变量以及head变量写payload存放的地址。
 
-3. 栈劫持
+3. 栈上劫持返回地址
+
+这没啥好说的，和入门的栈溢出一样的流程，前提当然是要能够泄露栈地址（或许还有canary）然后任意写，一般libc里面都会有保存一些栈地址（比如environ变量），当然也又可能被出题人清了，结合具体题目分析吧。
+
+4. 栈劫持
 
 现在为了限制堆利用经常会开启沙箱来关闭execve，严格的话甚至还会限制只能用Open/Read/Write三种系统调用（musl的话还要多开几个mmap/munmap这几个系统调用不然musl_libc不能正常运行）。
 

@@ -4,6 +4,8 @@
 
 # 环境配置
 
+## 源码下载与编译
+
 配了1.1.24和1.2.2这两个版本，都带了符号信息，也支持源码调试。
 
 配环境参考了XCTF_2020_PWN_musl/source/build.sh脚本。
@@ -17,6 +19,556 @@ make -j$(nproc)
 make install
 ```
 lib目录下有libc.so，一个ld符号链接指向libc.so，bin路径下有一个musl-gcc可以用来编译源码（如果有的话）。
+
+## 添加符号
+
+因为现在出题一般都会把符号表去掉，或者用ubuntu里面的发行版`musl_libc`，那肯定是不带符号表的，如果用自己编译好的带符号信息的libc会偏移有所不同，所以还是准备一份符号文件。
+
+平常用惯了`glibc-all-in-one`，符号在下载的时候顺便提取了，但是现在还不支持`musl`，所以花了不少时间自己折腾一下。参考`glibc-all-in-one`里面的一些命令，通过下载ubuntu发布的一些deb文件来获取符号文件。
+
+提取ubuntu发行版的二进制文件，这个可以照搬`glibc-all-in-one`的命令：
+
+```
+wget "http://archive.ubuntu.com/ubuntu/pool/universe/m/musl/musl_1.1.24-1_amd64.deb" 2>/dev/null -O debs/musl_1.1.24-1_amd64.deb
+./extract debs/musl_1.1.24-1_amd64.deb libs/1.1.24-1_amd64
+```
+
+提取符号文件就不能照搬了，下载的是`ddeb`文件，~~其实我不知道有什么区别也懒得去看~~，但是命令差不多。
+
+```
+wget "https://launchpad.net/ubuntu/+archive/primary/+files/musl-dbgsym_1.1.24-1_amd64.ddeb" 2>/dev/null -O debs/musl-dbgsym_1.1.24-1_amd64.ddeb
+mktemp -d
+dpkg -x debs/musl-dbgsym_1.1.24-1_amd64.ddeb /tmp/tmp.u5lEMjD3rB/ 			# this path depend on the last command
+cp -r /tmp/tmp.u5lEMjD3rB/usr/lib/debug/.build-id/ /usr/lib/debug/.build-id/
+```
+
+然后`/usr/lib/debug/`调试符号的加载路径下就有相应的符号文件了，我看到还有其他的一些调试文件，可能是根据哈希值去找的？
+
+```
+payoung@ubuntu:/mnt/hgfs/payoung/Documents/ctf/glibc-all-in-one$ ls -al /tmp/tmp.u5lEMjD3rB/
+total 32
+drwxr-xr-x  3 payoung payoung  4096 Oct 13  2019 .
+drwxrwxrwt 29 root    root    20480 Nov 29 22:21 ..
+drwxr-xr-x  4 payoung payoung  4096 Oct 13  2019 usr
+payoung@ubuntu:/mnt/hgfs/payoung/Documents/ctf/glibc-all-in-one$ ls -al /tmp/tmp.u5lEMjD3rB/usr/
+total 16
+drwxr-xr-x 4 payoung payoung 4096 Oct 13  2019 .
+drwxr-xr-x 3 payoung payoung 4096 Oct 13  2019 ..
+drwxr-xr-x 3 payoung payoung 4096 Oct 13  2019 lib
+drwxr-xr-x 3 payoung payoung 4096 Oct 13  2019 share
+payoung@ubuntu:/mnt/hgfs/payoung/Documents/ctf/glibc-all-in-one$ ls -al /tmp/tmp.u5lEMjD3rB/usr/lib/
+total 12
+drwxr-xr-x 3 payoung payoung 4096 Oct 13  2019 .
+drwxr-xr-x 4 payoung payoung 4096 Oct 13  2019 ..
+drwxr-xr-x 3 payoung payoung 4096 Oct 13  2019 debug
+payoung@ubuntu:/mnt/hgfs/payoung/Documents/ctf/glibc-all-in-one$ ls -al /tmp/tmp.u5lEMjD3rB/usr/lib/debug/
+total 12
+drwxr-xr-x 3 payoung payoung 4096 Oct 13  2019 .
+drwxr-xr-x 3 payoung payoung 4096 Oct 13  2019 ..
+drwxr-xr-x 3 payoung payoung 4096 Oct 13  2019 .build-id
+payoung@ubuntu:/mnt/hgfs/payoung/Documents/ctf/glibc-all-in-one$ ls -al /tmp/tmp.u5lEMjD3rB/usr/lib/debug/.build-id/
+total 12
+drwxr-xr-x 3 payoung payoung 4096 Oct 13  2019 .
+drwxr-xr-x 3 payoung payoung 4096 Oct 13  2019 ..
+drwxr-xr-x 2 payoung payoung 4096 Oct 13  2019 ad
+payoung@ubuntu:/mnt/hgfs/payoung/Documents/ctf/glibc-all-in-one$ ls -al /usr/lib/debug/.build-id/ad/
+total 952
+drwxr-xr-x 2 root root   4096 Nov 29 21:18 .
+drwxr-xr-x 7 root root   4096 Nov 29 21:18 ..
+-rw-r--r-- 1 root root 966032 Nov 29 21:18 1c27dcf0a249d73034ae447790636a4919d4ae.debug
+payoung@ubuntu:/mnt/hgfs/payoung/Documents/ctf/glibc-all-in-one$ file /usr/lib/debug/.build-id/ad/1c27dcf0a249d73034ae447790636a4919d4ae.debug 
+/usr/lib/debug/.build-id/ad/1c27dcf0a249d73034ae447790636a4919d4ae.debug: ELF 64-bit LSB shared object, x86-64, version 1 (SYSV), dynamically linked, BuildID[sha1]=ad1c27dcf0a249d73034ae447790636a4919d4ae, with debug_info, not stripped
+```
+
+然后用gdb调试libc或者elf就可以看到符号信息了，需要注意的是用的libc必须是上面那个用deb提取出来的二进制，可能是根据哈希值找的调试文件？我尝试用其他出题人给的一个libc也是去掉符号表但是哈希值不同，就找不到符号文件了。尝试自己手动添加符号文件也不行`pwndbg> add-symbol-file /usr/lib/debug/.build-id/ad/1c27dcf0a249d73034ae447790636a4919d4ae.debug`。
+
+```
+payoung@ubuntu:/mnt/hgfs/payoung/Documents/ctf/glibc-all-in-one/libs/1.1.24-1_amd64$ gdb ./libc.so 
+GNU gdb (Ubuntu 9.2-0ubuntu1~20.04) 9.2
+Copyright (C) 2020 Free Software Foundation, Inc.
+License GPLv3+: GNU GPL version 3 or later <http://gnu.org/licenses/gpl.html>
+This is free software: you are free to change and redistribute it.
+There is NO WARRANTY, to the extent permitted by law.
+Type "show copying" and "show warranty" for details.
+This GDB was configured as "x86_64-linux-gnu".
+Type "show configuration" for configuration details.
+For bug reporting instructions, please see:
+<http://www.gnu.org/software/gdb/bugs/>.
+Find the GDB manual and other documentation resources online at:
+    <http://www.gnu.org/software/gdb/documentation/>.
+
+For help, type "help".
+Type "apropos word" to search for commands related to "word"...
+pwndbg: loaded 197 commands. Type pwndbg [filter] for a list.
+pwndbg: created $rebase, $ida gdb functions (can be used with print/break)
+Reading symbols from ./libc.so...
+Reading symbols from /usr/lib/debug/.build-id/ad/1c27dcf0a249d73034ae447790636a4919d4ae.debug...
+pwndbg> p mal
+$1 = {
+  binmap = 0,
+  bins = {{
+      lock = {0, 0},
+      head = 0x0,
+      tail = 0x0
+    } <repeats 64 times>},
+  free_lock = {0, 0}
+}
+pwndbg> p environ
+$2 = (char **) 0x0
+pwndbg> q
+
+payoung@ubuntu:/mnt/hgfs/payoung/Documents/ctf/glibc-all-in-one/libs/1.1.24-1_amd64$ gdb ./baby_musl 
+GNU gdb (Ubuntu 9.2-0ubuntu1~20.04) 9.2
+Copyright (C) 2020 Free Software Foundation, Inc.
+License GPLv3+: GNU GPL version 3 or later <http://gnu.org/licenses/gpl.html>
+This is free software: you are free to change and redistribute it.
+There is NO WARRANTY, to the extent permitted by law.
+Type "show copying" and "show warranty" for details.
+This GDB was configured as "x86_64-linux-gnu".
+Type "show configuration" for configuration details.
+For bug reporting instructions, please see:
+<http://www.gnu.org/software/gdb/bugs/>.
+Find the GDB manual and other documentation resources online at:
+    <http://www.gnu.org/software/gdb/documentation/>.
+
+For help, type "help".
+Type "apropos word" to search for commands related to "word"...
+pwndbg: loaded 197 commands. Type pwndbg [filter] for a list.
+pwndbg: created $rebase, $ida gdb functions (can be used with print/break)
+Reading symbols from ./baby_musl...
+(No debugging symbols found in ./baby_musl)
+pwndbg> b malloc
+Breakpoint 1 at 0x700
+pwndbg> r
+Starting program: /mnt/hgfs/payoung/Documents/ctf/glibc-all-in-one/libs/1.1.24-1_amd64/baby_musl 
+Enter your name
+aa
+[1] Add
+[2] Delete
+[3] Edit
+[4] Show
+1
+Enter index
+0
+Enter size
+40
+
+Breakpoint 1, malloc (n=40) at src/malloc/malloc.c:285
+285	src/malloc/malloc.c: No such file or directory.
+LEGEND: STACK | HEAP | CODE | DATA | RWX | RODATA
+───────────────────────────────────────────────────────[ REGISTERS ]───────────────────────────────────────────────────────
+ RAX  0x28
+ RBX  0x0
+ RCX  0x2
+ RDX  0x0
+ RDI  0x28
+ RSI  0x0
+ R8   0x3c
+ R9   0x0
+ R10  0x0
+ R11  0x202
+ R12  0x7fffffffdd38 —▸ 0x7fffffffe0fe ◂— '/mnt/hgfs/payoung/Documents/ctf/glibc-all-in-one/libs/1.1.24-1_amd64/baby_musl'
+ R13  0x7fffffffdd48 —▸ 0x7fffffffe14d ◂— 'SHELL=/bin/bash'
+ R14  0x0
+ R15  0x0
+ RBP  0x7fffffffdca0 —▸ 0x7fffffffdcf0 ◂— 0x1
+ RSP  0x7fffffffdc68 —▸ 0x555555400941 (new+112) ◂— mov    rcx, rax
+ RIP  0x7ffff7f75ed0 (malloc) ◂— endbr64 
+────────────────────────────────────────────────────────[ DISASM ]─────────────────────────────────────────────────────────
+ ► 0x7ffff7f75ed0 <malloc>       endbr64 
+   0x7ffff7f75ed4 <malloc+4>     push   r15
+   0x7ffff7f75ed6 <malloc+6>     push   r14
+   0x7ffff7f75ed8 <malloc+8>     push   r13
+   0x7ffff7f75eda <malloc+10>    push   r12
+   0x7ffff7f75edc <malloc+12>    push   rbp
+   0x7ffff7f75edd <malloc+13>    push   rbx
+   0x7ffff7f75ede <malloc+14>    sub    rsp, 0x38
+   0x7ffff7f75ee2 <malloc+18>    mov    qword ptr [rsp + 0x18], rdi
+   0x7ffff7f75ee7 <malloc+23>    lea    rdi, [rsp + 0x18]
+   0x7ffff7f75eec <malloc+28>    mov    rax, qword ptr fs:[0x28]
+─────────────────────────────────────────────────────────[ STACK ]─────────────────────────────────────────────────────────
+00:0000│ rsp 0x7fffffffdc68 —▸ 0x555555400941 (new+112) ◂— mov    rcx, rax
+01:0008│     0x7fffffffdc70 ◂— 0x0
+02:0010│     0x7fffffffdc78 ◂— 0x0
+03:0018│     0x7fffffffdc80 ◂— 0x28 /* '(' */
+04:0020│     0x7fffffffdc88 ◂— 0x4523a79c48ec0c7d
+05:0028│     0x7fffffffdc90 —▸ 0x7fffffffdd38 —▸ 0x7fffffffe0fe ◂— '/mnt/hgfs/payoung/Documents/ctf/glibc-all-in-one/libs/1.1.24-1_amd64/baby_musl'
+06:0030│     0x7fffffffdc98 —▸ 0x555555400b5a (main) ◂— push   rbp
+07:0038│ rbp 0x7fffffffdca0 —▸ 0x7fffffffdcf0 ◂— 0x1
+───────────────────────────────────────────────────────[ BACKTRACE ]───────────────────────────────────────────────────────
+ ► f 0   0x7ffff7f75ed0 malloc
+   f 1   0x555555400941 new+112
+   f 2   0x555555400bfd main+163
+   f 3   0x7ffff7f69c6e libc_start_main_stage2+46
+   f 4   0x555555400796 _start_c
+───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+pwndbg> dir /mnt/hgfs/payoung/Documents/ctf/musl/musl-1.1.24/src/malloc/
+Source directories searched: /mnt/hgfs/payoung/Documents/ctf/musl/musl-1.1.24/src/malloc:$cdir:$cwd
+pwndbg> si
+0x00007ffff7f75ed4	285	{
+LEGEND: STACK | HEAP | CODE | DATA | RWX | RODATA
+───────────────────────────────────────────────────────[ REGISTERS ]───────────────────────────────────────────────────────
+ RAX  0x28
+ RBX  0x0
+ RCX  0x2
+ RDX  0x0
+ RDI  0x28
+ RSI  0x0
+ R8   0x3c
+ R9   0x0
+ R10  0x0
+ R11  0x202
+ R12  0x7fffffffdd38 —▸ 0x7fffffffe0fe ◂— '/mnt/hgfs/payoung/Documents/ctf/glibc-all-in-one/libs/1.1.24-1_amd64/baby_musl'
+ R13  0x7fffffffdd48 —▸ 0x7fffffffe14d ◂— 'SHELL=/bin/bash'
+ R14  0x0
+ R15  0x0
+ RBP  0x7fffffffdca0 —▸ 0x7fffffffdcf0 ◂— 0x1
+ RSP  0x7fffffffdc68 —▸ 0x555555400941 (new+112) ◂— mov    rcx, rax
+*RIP  0x7ffff7f75ed4 (malloc+4) ◂— push   r15
+────────────────────────────────────────────────────────[ DISASM ]─────────────────────────────────────────────────────────
+   0x7ffff7f75ed0 <malloc>       endbr64 
+ ► 0x7ffff7f75ed4 <malloc+4>     push   r15
+   0x7ffff7f75ed6 <malloc+6>     push   r14
+   0x7ffff7f75ed8 <malloc+8>     push   r13
+   0x7ffff7f75eda <malloc+10>    push   r12
+   0x7ffff7f75edc <malloc+12>    push   rbp
+   0x7ffff7f75edd <malloc+13>    push   rbx
+   0x7ffff7f75ede <malloc+14>    sub    rsp, 0x38
+   0x7ffff7f75ee2 <malloc+18>    mov    qword ptr [rsp + 0x18], rdi
+   0x7ffff7f75ee7 <malloc+23>    lea    rdi, [rsp + 0x18]
+   0x7ffff7f75eec <malloc+28>    mov    rax, qword ptr fs:[0x28]
+─────────────────────────────────────────────────────[ SOURCE (CODE) ]─────────────────────────────────────────────────────
+In file: /mnt/hgfs/payoung/Documents/ctf/musl/musl-1.1.24/src/malloc/malloc.c
+   280 
+   281 	__bin_chunk(split);
+   282 }
+   283 
+   284 void *malloc(size_t n)
+ ► 285 {
+   286 	struct chunk *c;
+   287 	int i, j;
+   288 
+   289 	if (adjust_size(&n) < 0) return 0;
+   290 
+─────────────────────────────────────────────────────────[ STACK ]─────────────────────────────────────────────────────────
+00:0000│ rsp 0x7fffffffdc68 —▸ 0x555555400941 (new+112) ◂— mov    rcx, rax
+01:0008│     0x7fffffffdc70 ◂— 0x0
+02:0010│     0x7fffffffdc78 ◂— 0x0
+03:0018│     0x7fffffffdc80 ◂— 0x28 /* '(' */
+04:0020│     0x7fffffffdc88 ◂— 0x4523a79c48ec0c7d
+05:0028│     0x7fffffffdc90 —▸ 0x7fffffffdd38 —▸ 0x7fffffffe0fe ◂— '/mnt/hgfs/payoung/Documents/ctf/glibc-all-in-one/libs/1.1.24-1_amd64/baby_musl'
+06:0030│     0x7fffffffdc98 —▸ 0x555555400b5a (main) ◂— push   rbp
+07:0038│ rbp 0x7fffffffdca0 —▸ 0x7fffffffdcf0 ◂— 0x1
+───────────────────────────────────────────────────────[ BACKTRACE ]───────────────────────────────────────────────────────
+ ► f 0   0x7ffff7f75ed4 malloc+4
+   f 1   0x555555400941 new+112
+   f 2   0x555555400bfd main+163
+   f 3   0x7ffff7f69c6e libc_start_main_stage2+46
+   f 4   0x555555400796 _start_c
+───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+pwndbg> p mal
+$1 = {
+  binmap = 824633720832,
+  bins = {{
+      lock = {0, 0},
+      head = 0x0,
+      tail = 0x0
+    } <repeats 38 times>, {
+      lock = {0, 0},
+      head = 0x7ffff7ffe310,
+      tail = 0x7ffff7ffe310
+    }, {
+      lock = {0, 0},
+      head = 0x555555602070,
+      tail = 0x555555605050
+    }, {
+      lock = {0, 0},
+      head = 0x0,
+      tail = 0x0
+    } <repeats 24 times>},
+  free_lock = {0, 0}
+}
+pwndbg> q
+```
+
+
+## 符号文件的加载分析
+
+题外话，我在尝试寻找符号文件过程中的一些分析思考，结合本地环境我大致猜测一下gdb如何加载调试符号。
+
+1. ubuntu2004本地自带的glibc，会去本地`/usr/lib/debug`的路径下找相关的符号文件。
+
+```
+pwndbg> show debug-file-directory
+The directory where separate debug symbols are searched for is "/usr/lib/debug".
+pwndbg> 
+```
+
+去该路径下找就会发现有一个和我们平时使用的`/lib/x86_64-linux-gnu/libc-2.31.so`哈希值一模一样的`libc-2.31.so`，但是居然显示有调试信息而且未除去符号表，或许我们平时没patchelf用系统自带的2.31能够有符号调试正是用的这个，但是既然有`debug_info`而且`no stripped`为啥会和`stripped`后的二进制文件保持哈希一致呢？有点想不明白。
+
+```
+payoung@ubuntu:/usr/lib/debug$ ls -al
+total 20
+drwxr-xr-x   5 root root 4096 Aug 19 03:40 .
+drwxr-xr-x 148 root root 4096 Oct 21 19:05 ..
+drwxr-xr-x   7 root root 4096 Nov 29 21:18 .build-id
+drwxr-xr-x   5 root root 4096 Aug 28 02:11 lib
+drwxr-xr-x   3 root root 4096 Aug 19 03:40 usr
+payoung@ubuntu:/usr/lib/debug$ ls -al ./lib/
+total 20
+drwxr-xr-x 5 root root 4096 Aug 28 02:11 .
+drwxr-xr-x 5 root root 4096 Aug 19 03:40 ..
+drwxr-xr-x 2 root root 4096 Aug 28 02:11 i386-linux-gnu
+drwxr-xr-x 3 root root 4096 Aug 19 03:40 libc6-prof
+drwxr-xr-x 2 root root 4096 Aug 19 03:40 x86_64-linux-gnu
+payoung@ubuntu:/usr/lib/debug$ ls -al ./lib/x86_64-linux-gnu/
+total 28012
+drwxr-xr-x 2 root root     4096 Aug 19 03:40 .
+drwxr-xr-x 5 root root     4096 Aug 28 02:11 ..
+-rwxr-xr-x 1 root root  1409464 Dec 16  2020 ld-2.31.so
+-rw-r--r-- 1 root root   131600 Dec 16  2020 libanl-2.31.so
+-rw-r--r-- 1 root root    22656 Dec 16  2020 libBrokenLocale-2.31.so
+-rwxr-xr-x 1 root root 17371928 Dec 16  2020 libc-2.31.so
+-rw-r--r-- 1 root root   241048 Dec 16  2020 libdl-2.31.so
+-rw-r--r-- 1 root root  4611328 Dec 16  2020 libm-2.31.so
+-rw-r--r-- 1 root root    56248 Dec 16  2020 libmemusage.so
+-rw-r--r-- 1 root root   707616 Dec 16  2020 libmvec-2.31.so
+-rw-r--r-- 1 root root   749248 Dec 16  2020 libnsl-2.31.so
+-rw-r--r-- 1 root root   199992 Dec 16  2020 libnss_compat-2.31.so
+-rw-r--r-- 1 root root   140104 Dec 16  2020 libnss_dns-2.31.so
+-rw-r--r-- 1 root root   389448 Dec 16  2020 libnss_files-2.31.so
+-rw-r--r-- 1 root root   120200 Dec 16  2020 libnss_hesiod-2.31.so
+-rw-r--r-- 1 root root   407744 Dec 16  2020 libnss_nis-2.31.so
+-rw-r--r-- 1 root root   491336 Dec 16  2020 libnss_nisplus-2.31.so
+-rw-r--r-- 1 root root    10232 Dec 16  2020 libpcprofile.so
+-rw-r--r-- 1 root root   511336 Dec 16  2020 libresolv-2.31.so
+-rw-r--r-- 1 root root   345200 Dec 16  2020 librt-2.31.so
+-rw-r--r-- 1 root root    89240 Dec 16  2020 libSegFault.so
+-rw-r--r-- 1 root root   595808 Dec 16  2020 libthread_db-1.0.so
+-rw-r--r-- 1 root root    34976 Dec 16  2020 libutil-2.31.so
+payoung@ubuntu:/usr/lib/debug$ file ./lib/x86_64-linux-gnu/libc-2.31.so 
+./lib/x86_64-linux-gnu/libc-2.31.so: ELF 64-bit LSB shared object, x86-64, version 1 (GNU/Linux), dynamically linked, interpreter *empty*, BuildID[sha1]=099b9225bcb0d019d9d60884be583eb31bb5f44e, for GNU/Linux 3.2.0, with debug_info, not stripped
+payoung@ubuntu:/usr/lib/debug$ file /lib/x86_64-linux-gnu/libc-2.31.so 
+/lib/x86_64-linux-gnu/libc-2.31.so: ELF 64-bit LSB shared object, x86-64, version 1 (GNU/Linux), dynamically linked, interpreter /lib64/ld-linux-x86-64.so.2, BuildID[sha1]=099b9225bcb0d019d9d60884be583eb31bb5f44e, for GNU/Linux 3.2.0, stripped
+```
+
+2. `glibc-all-in-one`里面的libc如何加载符号文件：
+
+```
+payoung@ubuntu:/mnt/hgfs/payoung/Documents/ctf/glibc-all-in-one/libs/2.23-0ubuntu11.3_amd64$ gdb ./libc-2.23.so 
+GNU gdb (Ubuntu 9.2-0ubuntu1~20.04) 9.2
+Copyright (C) 2020 Free Software Foundation, Inc.
+License GPLv3+: GNU GPL version 3 or later <http://gnu.org/licenses/gpl.html>
+This is free software: you are free to change and redistribute it.
+There is NO WARRANTY, to the extent permitted by law.
+Type "show copying" and "show warranty" for details.
+This GDB was configured as "x86_64-linux-gnu".
+Type "show configuration" for configuration details.
+For bug reporting instructions, please see:
+<http://www.gnu.org/software/gdb/bugs/>.
+Find the GDB manual and other documentation resources online at:
+    <http://www.gnu.org/software/gdb/documentation/>.
+
+For help, type "help".
+Type "apropos word" to search for commands related to "word"...
+pwndbg: loaded 197 commands. Type pwndbg [filter] for a list.
+pwndbg: created $rebase, $ida gdb functions (can be used with print/break)
+Reading symbols from ./libc-2.23.so...
+Reading symbols from /mnt/hgfs/payoung/Documents/ctf/glibc-all-in-one/libs/2.23-0ubuntu11.3_amd64/.debug/libc-2.23.so...
+pwndbg> 
+```
+
+可以看到是用的libc当前目录下的`.debug`文件夹，查看一下发现和本地`/usr/lib/debug/lib/x86_64-linux-gnu/libc-2.31.so`的形式类似，也是加了调试信息和符号表，但是哈希值保持不变。
+
+```
+payoung@ubuntu:/mnt/hgfs/payoung/Documents/ctf/glibc-all-in-one/libs/2.23-0ubuntu11.3_amd64$ file .debug/libc-2.23.so 
+.debug/libc-2.23.so: ELF 64-bit LSB shared object, x86-64, version 1 (GNU/Linux), dynamically linked, interpreter *empty*, BuildID[sha1]=30773be8cf5bfed9d910c8473dd44eaab2e705ab, for GNU/Linux 2.6.32, with debug_info, not stripped
+payoung@ubuntu:/mnt/hgfs/payoung/Documents/ctf/glibc-all-in-one/libs/2.23-0ubuntu11.3_amd64$ file libc-2.23.so 
+libc-2.23.so: ELF 64-bit LSB shared object, x86-64, version 1 (GNU/Linux), dynamically linked, interpreter /lib64/ld-linux-x86-64.so.2, BuildID[sha1]=30773be8cf5bfed9d910c8473dd44eaab2e705ab, for GNU/Linux 2.6.32, stripped
+```
+
+3. 康康`musl libc`。
+
+加载符号文件的方式好像略有不同，我现在本地的环境因为做题现在`musl libc`版本是1.2.2，可以看到和本地的glibc略有不同，不过也是在`/usr/lib/debug/`这个路径下找，然后`./build-id/`路径下有几个文件夹，看了一下似乎是libc的sha1哈希值前两位（这个不怕冲突吗？哈希碰撞个前两位那不是轻轻松松？），然后文件夹下就是调试的`xx.debug`符号文件了，（名字又是一个奇怪的哈希值？），可以看到和glibc一样也是多了调试信息和符号表，而哈希值保持不变，试了一下执行直接报`Segmentation fault (core dumped)`，看来还是有所不同的，正常的`musl libc`执行应该输出提示信息才对。我也是照着这个配了一个`musl 1.1.24`的调试符号文件。
+
+```
+payoung@ubuntu:/mnt/hgfs/payoung/Documents/ctf/glibc-all-in-one/libs/2.23-0ubuntu11.3_amd64$ gdb /lib/x86_64-linux-musl/libc.so 
+GNU gdb (Ubuntu 9.2-0ubuntu1~20.04) 9.2
+Copyright (C) 2020 Free Software Foundation, Inc.
+License GPLv3+: GNU GPL version 3 or later <http://gnu.org/licenses/gpl.html>
+This is free software: you are free to change and redistribute it.
+There is NO WARRANTY, to the extent permitted by law.
+Type "show copying" and "show warranty" for details.
+This GDB was configured as "x86_64-linux-gnu".
+Type "show configuration" for configuration details.
+For bug reporting instructions, please see:
+<http://www.gnu.org/software/gdb/bugs/>.
+Find the GDB manual and other documentation resources online at:
+    <http://www.gnu.org/software/gdb/documentation/>.
+
+For help, type "help".
+Type "apropos word" to search for commands related to "word"...
+pwndbg: loaded 197 commands. Type pwndbg [filter] for a list.
+pwndbg: created $rebase, $ida gdb functions (can be used with print/break)
+Reading symbols from /lib/x86_64-linux-musl/libc.so...
+Reading symbols from /usr/lib/debug/.build-id/3a/26f086e73e894a846741a206dc1cb72d639ee7.debug...
+pwndbg> q
+payoung@ubuntu:/mnt/hgfs/payoung/Documents/ctf/glibc-all-in-one/libs/2.23-0ubuntu11.3_amd64$ file /lib/x86_64-linux-musl/libc.so 
+/lib/x86_64-linux-musl/libc.so: ELF 64-bit LSB shared object, x86-64, version 1 (SYSV), dynamically linked, BuildID[sha1]=3a26f086e73e894a846741a206dc1cb72d639ee7, stripped
+payoung@ubuntu:/mnt/hgfs/payoung/Documents/ctf/glibc-all-in-one/libs/2.23-0ubuntu11.3_amd64$ file /usr/lib/debug/.build-id/3a/26f086e73e894a846741a206dc1cb72d639ee7.debug
+/usr/lib/debug/.build-id/3a/26f086e73e894a846741a206dc1cb72d639ee7.debug: ELF 64-bit LSB shared object, x86-64, version 1 (SYSV), dynamically linked, BuildID[sha1]=3a26f086e73e894a846741a206dc1cb72d639ee7, with debug_info, not stripped
+payoung@ubuntu:/mnt/hgfs/payoung/Documents/ctf/glibc-all-in-one/libs/2.23-0ubuntu11.3_amd64$ /usr/lib/debug/.build-id/3a/26f086e73e894a846741a206dc1cb72d639ee7.debug
+Segmentation fault (core dumped)
+```
+
+4. 分析一下平时用的`glibc-all-in-one`。
+
+`update_list`使用python写的脚本，用正则表达式匹配，去ubuntu官方源和清华源拖相应版本libc以及调试文件的deb包。
+
+```
+#!/usr/bin/python
+import re
+import requests
+
+common_url = 'https://mirror.tuna.tsinghua.edu.cn/ubuntu/pool/main/g/glibc/'
+# url = 'http://archive.ubuntu.com/ubuntu/pool/main/g/glibc/'
+old_url = 'http://old-releases.ubuntu.com/ubuntu/pool/main/g/glibc/'
+
+
+def get_list(url, arch):
+    content = str(requests.get(url).content)
+    return re.findall('libc6_(2\.[0-9][0-9]-[0-9]ubuntu[0-9\.]*_{}).deb'.format(arch), content)
+
+
+common_list = get_list(common_url, 'amd64')
+common_list += get_list(common_url, 'i386')
+
+with open('list', 'w') as f:
+    for l in sorted(set(common_list)):
+        f.write(l + '\n')
+
+print('[+] Common list has been save to "list"')
+
+old_list = get_list(old_url, 'amd64')
+old_list += get_list(old_url, 'i386')
+
+with open('old_list', 'w') as f:
+    for l in sorted(set(old_list)):
+        f.write(l + '\n')
+
+print('[+] Old-release list has been save to "old_list"')
+```
+
+`download`和`download_old`脚本类似只是源不同，这里来看`download`，核心在`download_single`函数，从源下载libc二进制的deb以及调试符号文件的deb。
+
+```
+#!/bin/bash
+cd "$(dirname "$0")"
+if [ ! -d "libs" ]; then
+    mkdir libs
+fi
+
+if [ ! -d "debs" ];  then
+    mkdir debs
+fi
+
+SOURCE="https://mirror.tuna.tsinghua.edu.cn/ubuntu/pool/main/g/glibc"
+# Use the source below if you feel slow, or change it on your own.
+# SOURCE="http://archive.ubuntu.com/ubuntu/pool/main/g/glibc/"
+
+LIBC_PREFIX="libc6_"
+LIBC_DBG_PREFIX="libc6-dbg_"
+
+die() {
+  echo >&2 $1
+  exit 1
+}
+
+usage() {
+  echo >&2 "Usage: $0 id"
+  exit 2
+}
+
+download_single() {
+  local id=$1
+  local deb_name=$LIBC_PREFIX$id.deb
+  local dbg_name=$LIBC_DBG_PREFIX$id.deb
+  echo "Getting $id"
+  if [ -d "libs/$id" ]; then
+    die "  --> Downloaded before. Remove it to download again."
+  fi
+
+  # download binary package
+  local url="$SOURCE/$deb_name"
+  echo "  -> Location: $url"
+  echo "  -> Downloading libc binary package"
+  wget "$url" 2>/dev/null -O debs/$deb_name || die "Failed to download package from $url"
+  echo "  -> Extracting libc binary package"
+
+  mkdir libs/$id
+  ./extract debs/$deb_name libs/$id
+  echo "  -> Package saved to libs/$id"
+
+  # download debug info package
+  local url="$SOURCE/$dbg_name"
+  echo "  -> Location: $url"
+  echo "  -> Downloading libc debug package"
+  wget "$url" 2>/dev/null -O debs/$dbg_name || die "Failed to download package from $url"
+  echo "  -> Extracting libc debug package"
+
+  mkdir libs/$id/.debug
+  ./extract debs/$dbg_name libs/$id/.debug
+  echo "  -> Package saved to libs/$id/.debug"
+}
+
+if [[ $# != 1 ]]; then
+  usage
+fi
+download_single "$1"
+```
+
+最后用`extract`脚本提取两个包，其中调试的内容保存在`.debug`目录下。
+
+```
+#!/bin/bash
+cd "$(dirname "$0")"
+
+die() {
+  echo >&2 $1
+  exit 1
+}
+
+usage() {
+  echo -e >&2 "Usage: $0 deb output"
+  exit 2
+}
+
+extract() {
+    local deb=$1
+    local out=$2
+    if [ ! -d "$out" ]; then
+        mkdir $out
+    fi
+    local tmp=`mktemp -d`
+    dpkg -x $deb $tmp || die "dpkg failed"
+
+    cp -rP $tmp/lib/*/* $out 2>/dev/null || cp -rP $tmp/lib32/* $out 2>/dev/null \
+      || cp -rP $tmp/usr/lib/debug/lib/*/* $out 2>/dev/null || cp -rP $tmp/usr/lib/debug/lib32/* $out 2>/dev/null \
+      || die "Failed to save. Check it manually $tmp"
+    
+    rm -rf $tmp
+}
+
+if [[ $# -ne 2 ]]; then
+    usage
+fi
+
+extract "$1" "$2"
+
+```
+
+`build`脚本则是用来将源码编译成二进制文件，暂时没用上就没有仔细看了，大致看也不是很复杂，以后有用上再说。
+
 
 # 题目列表
 
@@ -170,6 +722,20 @@ group对chunk的管理策略：
 3. 利用edit功能的溢出清空下一堆块的offset，然后伪造group使其指向伪造的meta。
 4. 利用dequeue函数的unlink功能任意写，将__stdout_used变量覆盖成tempNote申请的区域上，在该内存中伪造stdout。
 5. exit退出，通过FSOP获取shell。
+
+
+## 0ctf_finals_2021_BabaHeap
+
+打比赛的时候太菜了不会做，放题也有点晚，睡完起来没时间做了，参考[r3kapig](https://r3kapig.com/writeup/20211011-0ctf-finals/)师傅的博客复现。
+
+### 攻击思路
+
+1. 分别释放0x1c0和0x120小的堆块到mal数组当中，选择这个大小的原因是`&mal.bins[8] == 0x7ffff7ffbb00; &mal.bins[13] == 0x7ffff7ffbb78;`。
+2. 利用UAF漏洞修改0x1c0堆块的next域，利用修改时会在末尾补`\x00`的特性，刚好partial_write使得next指向`&mal.bins[8]`。
+3. 申请0x1c0的堆块先拿回第一次释放的堆，由于unbin就会在`&mal.bins[13].head`写入`&mal.bins[8]`，再次申请0x1c0的堆块就能拿到`mal.bins[8]`区域的fake_chunk。之前释放0x120大小的堆块是为了现在拿fake_chunk时unbin函数的双链表操作，保证next和prev域指向的区域可写。
+4. 拿到mal上的堆块就很好做了，释放该区域的堆块，就能泄露heap进而泄露libc_base。
+5. 修改mal上的链表来任意地址分配，和上面的思路类似，申请`__stdin_FILE`对应的fake_chunk，同样要提前布置next和prev可写指针。
+6. 拿到`__stdin_FILE`结构体后伪造IO结构体，然后退出main函数，在exit函数中劫持控制流进行栈迁移并ORW。
 
 # 参考链接
 
