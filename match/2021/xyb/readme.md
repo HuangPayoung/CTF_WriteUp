@@ -51,6 +51,12 @@
 4. 利用堆叠，修改伪造的meta->mem指向stdout，在堆上布置ROP链，然后进行FSOP劫持控制流，利用栈劫持来控制流劫持到ROP链上拿到flag。
 
 
+## LifeSimulation 
+
+照着别人WP写一遍，看不懂啊，C++里面的堆分配乱七八糟的。
+
+
+
 # 参考链接
 
 [官方WP](https://mp.weixin.qq.com/s/UwrZVlQ_WJ5rO4InOErt1g)

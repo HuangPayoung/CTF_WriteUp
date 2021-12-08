@@ -677,7 +677,7 @@ group对chunk的管理策略：
 ### 攻击思路
 1. 利用UAF泄露地址信息和secret，注意要构造好堆风水，使得原先用来保存value的堆被写入指针。
 2. 伪造meta->next/prev指针，利用unlink时调用dequeue函数可以任意地址写，往__stdout_FILE写伪造的meta地址。
-3. 利用queue函数把伪造的mete放入__malloc_context的active数组当中，下次申请即可拿到。
+3. 利用queue函数把伪造的meta放入__malloc_context的active数组当中，下次申请即可拿到。
 4. 进行FSOP攻击拿到shell。
 
 
@@ -736,6 +736,42 @@ group对chunk的管理策略：
 4. 拿到mal上的堆块就很好做了，释放该区域的堆块，就能泄露heap进而泄露libc_base。
 5. 修改mal上的链表来任意地址分配，和上面的思路类似，申请`__stdin_FILE`对应的fake_chunk，同样要提前布置next和prev可写指针。
 6. 拿到`__stdin_FILE`结构体后伪造IO结构体，然后退出main函数，在exit函数中劫持控制流进行栈迁移并ORW。
+
+
+## n1ctf_2021_House_of_tataru
+
+太菜了做不出来，参考[Super Guesser](https://kileak.github.io/ctf/2021/n1ctf21-tataru/)博客复现的，这老哥还说他从没做过musl，太牛了。
+
+另外还参考了[r3kapig](https://r3kapig.com/writeup/20211122-n1ctf/#house_of_tataru)（没有侧信道直接爆破）和[官方wp](https://github.com/Nu1LCTF/n1ctf-2021/tree/main/Pwn/house_of_tataru)，不过我觉得官方的作法稍微麻烦，另外两位都是改已`freed`的`meta->mem`字段，这样可以直接过`calloc`的检查。
+
+### 程序功能
+
+```
+struct note
+{
+	char *buffer;
+	size_t size;
+	size_t offset;
+}
+```
+
+bss段上`notelist`保存两个这种结构体。
+
+菜单题：
+1. 添加功能，可申请`0x1000`以下大小的堆块，以calloc方式申请，然后写入申请长度。注意这里存在漏洞，如果设置的size大于`0x1000`，只会更新`size`字段而不会改指针。
+2. 将`size`拷贝至`offset`字段，结合功能1其实就可以随便设置这两个字段，不过需要0x1000以上。
+3. 写功能，可以从`noteptr->buffer[offset]`写至`noteptr->buffer[size]`，但是有个奇怪的检查，写的地址不能超过`libc`的基址，也就是elf和heap这两段空间。另外要注意的是`read`函数如果读的是未分配的内存空间，其实并不会崩溃，只会返回`-1`表示失败，而程序针对此处的检查也就打印出`failed`字符串而不是退出，所以可以用这个特性来侧信道。
+4. 读功能，可以从`noteptr->buffer[offset]`开始读出一个字符串，有零字符截断，检查同上也不能读`libc`基址以后的空间。
+
+### 攻击思路
+
+1. 利用bss段上一些存在的已经被freed掉的group，先申请bss段上的堆块，然后通过越界读`group->meta`字段可以泄露堆地址。
+2. 侧信道泄露`bss段`与`heap段`之间的距离：写失败并不会崩溃而是打印字符串`failed`，所以可以利用这个特性来判断，据r3的师傅描述，开启ASLR后`bss段`与`heap段`之间的距离为`1-0x2000`页，他们比较粗暴直接嗯爆破，侧信道的话则从1页开始测试然后逐渐增加，直至写成功那一次就不会返回`failed`字符串了。
+3. gusser队伍的师傅不太熟musl，按他们的描述使用动态调的方法来破坏musl的分配：他们先分配新大小（0x30）的堆块，然后发现这个堆块地址会保存在`heap段`上，据我调试应该是被释放掉的`meta->mem`，这个`meta`管理的`group`里面的堆块全都释放的（或许是程序刚开始bss段上这个group里面的堆块没被申请），所以利用越界写先提前写改掉`meta->mem`字段，然后申请0x30大小的堆块就任意能申请到我们想要的内存空间。
+4. 用上述的方法申请bss段上的`notelist`地址，然后就能用3/4任意读写（当然还是要在libc地址之前），写个read函数got表来泄露libc基址。
+5. 重复上述的方法，申请libc里面的`head`变量，因为3/4都有检查，只能通过1的申请功能来任意申请从而任意写。改掉`head`变量后退出`main`函数，然后就能在`exit`函数里面触发`exit_hook`。
+6. 劫持控制流后用`longjmp`函数的gadgets来栈劫持至bss段上提前布置的ROP链，ORW读flag。
+
 
 # 参考链接
 
